@@ -186,7 +186,7 @@ impl Matrix {
         for i in 0..self.rows {
             for k in 0..other.rows {
                 for j in 0..other.cols {
-                    data[i * other.cols + j] += self.get(i, k) * other.get(k, j);
+                    data[i * other.rows + j] += self.get(i, k) * other.get(k, j);
                 }
             }
         }
