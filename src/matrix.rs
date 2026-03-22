@@ -92,6 +92,13 @@ impl<T: Copy> Matrix<T> {
         let idx = self.rowcol_to_idx(r, c);
         self.data[idx] = v;
     }
+
+    fn apply_<F>(&mut self, f: F)
+    where
+        F: FnMut(&mut T),
+    {
+        self.data.iter_mut().for_each(f);
+    }
 }
 
 // Unary operations
