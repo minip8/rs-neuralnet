@@ -339,7 +339,7 @@ mod tests {
     fn test_matrix_apply() {
         let mut m: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
         // Double each element
-        m.apply_(|x| *x *= 2);
+        m.apply_(|x| 2 * x);
         assert_eq!(m.data(), &vec![2, 4, 6, 8]);
     }
 
@@ -347,7 +347,7 @@ mod tests {
     fn test_matrix_apply_add_constant() {
         let mut m: Matrix<f32> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         // Add 10 to each element
-        m.apply_(|x| *x += 10.0);
+        m.apply_(|x| x + 10.0);
         assert_eq!(m.data(), &vec![11.0, 12.0, 13.0, 14.0]);
     }
 }
