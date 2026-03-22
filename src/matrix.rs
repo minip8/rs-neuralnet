@@ -4,6 +4,22 @@ pub struct Matrix {
     data: Vec<f32>,
 }
 
+// Getters
+impl Matrix {
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    pub fn data(&self) -> &Vec<f32> {
+        &self.data
+    }
+}
+
+// Constructors
 impl Matrix {
     pub fn zeros(rows: usize, cols: usize) -> Matrix {
         Matrix {
