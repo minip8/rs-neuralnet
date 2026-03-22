@@ -95,9 +95,9 @@ impl<T: Copy> Matrix<T> {
 
     fn apply_<F>(&mut self, f: F)
     where
-        F: FnMut(&mut T),
+        F: Fn(&T) -> T,
     {
-        self.data.iter_mut().for_each(f);
+        self.data.iter_mut().for_each(|x| *x = f(x));
     }
 }
 
