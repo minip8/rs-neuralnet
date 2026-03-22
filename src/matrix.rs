@@ -168,13 +168,9 @@ impl Matrix {
         let mut data = vec![0f32; self.rows * other.cols];
 
         for i in 0..self.rows {
-            for j in 0..other.cols {
-                data[i * other.cols + j] = {
-                    let mut s = 0f32;
-                    for k in 0..self.cols {
-                        s += self.get(i, k) * other.get(k, j);
-                    }
-                    s
+            for k in 0..other.rows {
+                for j in 0..other.cols {
+                    data[i * other.rows + j] += self.get(i, k) * other.get(k, j);
                 }
             }
         }
@@ -185,20 +181,15 @@ impl Matrix {
     pub fn mat_mul(&self, other: &Matrix) -> Matrix {
         self.assert_matmul_compatible(other);
 
-        let mut res = Matrix::zeros(self.rows, other.cols);
+        let mut data = vec![0f32; self.rows * other.cols];
 
         for i in 0..self.rows {
-            for j in 0..other.cols {
-                let v = {
-                    let mut s = 0f32;
-                    for k in 0..self.cols {
-                        s += self.get(i, k) * other.get(k, j);
-                    }
-                    s
-                };
-                res.set_(i, j, v);
+            for k in 0..other.rows {
+                for j in 0..other.cols {
+                    data[i * other.cols + j] += self.get(i, k) * other.get(k, j);
+                }
             }
         }
-        res
+        Matrix::from_vec1d(self.rows, other.cols, data)
     }
 }
