@@ -32,13 +32,13 @@ impl<T: Copy + Default> Matrix<T> {
     }
 
     pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Matrix<T> {
-        Matrix::assert_rowcol_dimensions_match_data(rows, cols, &data);
+        Matrix::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
 
         Matrix { rows, cols, data }
     }
 
     pub fn from_vec2d(data2d: Vec<Vec<T>>) -> Matrix<T> {
-        debug_assert!(data2d.len() > 0);
+        Matrix::assert_rowcol_dimensions_match_data2d(&data2d);
 
         let rows = data2d.len();
         let cols = data2d[0].len();
@@ -54,8 +54,13 @@ impl<T: Copy + Default> Matrix<T> {
 
 // Assertions
 impl<T> Matrix<T> {
-    fn assert_rowcol_dimensions_match_data(rows: usize, cols: usize, data: &Vec<T>) {
-        debug_assert_eq!(rows * cols, data.len())
+    fn assert_rowcol_dimensions_match_data1d(rows: usize, cols: usize, data: &Vec<T>) {
+        debug_assert_eq!(rows * cols, data.len());
+    }
+
+    fn assert_rowcol_dimensions_match_data2d(data2d: &Vec<Vec<T>>) {
+        debug_assert!(data2d.len() > 0);
+        debug_assert!(data2d.iter().all(|r| r.len() == data2d[0].len()));
     }
 
     fn assert_same_dimensions(&self, other: &Matrix<T>) {
