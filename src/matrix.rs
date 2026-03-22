@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, Mul, Sub};
 
 pub struct Matrix<T> {
     rows: usize,
@@ -116,14 +116,14 @@ impl<T: Copy + Default> Matrix<T> {
 
 // Binary operations
 
-impl<T: Copy + Default + Add<Output = T> + AddAssign> Matrix<T> {
+impl<T: Copy + Default + Add<Output = T>> Matrix<T> {
     pub fn add_(&mut self, other: &Matrix<T>) {
         self.assert_same_dimensions(other);
 
         self.data
             .iter_mut()
             .zip(other.data.iter())
-            .for_each(|(a, b)| *a += *b);
+            .for_each(|(a, b)| *a = *a + *b);
     }
 
     pub fn add(&self, other: &Matrix<T>) -> Matrix<T> {
@@ -140,14 +140,14 @@ impl<T: Copy + Default + Add<Output = T> + AddAssign> Matrix<T> {
     }
 }
 
-impl<T: Copy + Default + Sub<Output = T> + SubAssign> Matrix<T> {
+impl<T: Copy + Default + Sub<Output = T>> Matrix<T> {
     pub fn sub_(&mut self, other: &Matrix<T>) {
         self.assert_same_dimensions(other);
 
         self.data
             .iter_mut()
             .zip(other.data.iter())
-            .for_each(|(a, b)| *a -= *b);
+            .for_each(|(a, b)| *a = *a - *b);
     }
 
     pub fn sub(&self, other: &Matrix<T>) -> Matrix<T> {
@@ -164,14 +164,14 @@ impl<T: Copy + Default + Sub<Output = T> + SubAssign> Matrix<T> {
     }
 }
 
-impl<T: Copy + Default + Mul<Output = T> + MulAssign> Matrix<T> {
+impl<T: Copy + Default + Mul<Output = T>> Matrix<T> {
     pub fn dot_(&mut self, other: &Matrix<T>) {
         self.assert_same_dimensions(other);
 
         self.data
             .iter_mut()
             .zip(other.data.iter())
-            .for_each(|(a, b)| *a *= *b);
+            .for_each(|(a, b)| *a = *a * *b);
     }
 
     pub fn dot(&self, other: &Matrix<T>) -> Matrix<T> {
@@ -188,7 +188,7 @@ impl<T: Copy + Default + Mul<Output = T> + MulAssign> Matrix<T> {
     }
 
     pub fn mul_(&mut self, scale: T) {
-        self.data.iter_mut().for_each(|a| *a *= scale);
+        self.data.iter_mut().for_each(|a| *a = *a * scale);
     }
 
     pub fn mul(&self, scale: T) -> Matrix<T> {
@@ -198,7 +198,7 @@ impl<T: Copy + Default + Mul<Output = T> + MulAssign> Matrix<T> {
     }
 }
 
-impl<T: Copy + Default + Mul<Output = T> + Add<Output = T> + AddAssign> Matrix<T> {
+impl<T: Copy + Default + Mul<Output = T> + Add<Output = T>> Matrix<T> {
     pub fn mat_mul_(&mut self, other: &Matrix<T>) {
         self.assert_matmul_compatible(other);
 
@@ -207,7 +207,8 @@ impl<T: Copy + Default + Mul<Output = T> + Add<Output = T> + AddAssign> Matrix<T
         for i in 0..self.rows {
             for k in 0..other.rows {
                 for j in 0..other.cols {
-                    data[i * other.cols + j] += self.get(i, k) * other.get(k, j);
+                    data[i * other.cols + j] =
+                        data[i * other.cols + j] + self.get(i, k) * other.get(k, j);
                 }
             }
         }
@@ -223,7 +224,8 @@ impl<T: Copy + Default + Mul<Output = T> + Add<Output = T> + AddAssign> Matrix<T
         for i in 0..self.rows {
             for k in 0..other.rows {
                 for j in 0..other.cols {
-                    data[i * other.cols + j] += self.get(i, k) * other.get(k, j);
+                    data[i * other.cols + j] =
+                        data[i * other.cols + j] + self.get(i, k) * other.get(k, j);
                 }
             }
         }
