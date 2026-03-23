@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use num_traits::Float;
 use rand::{
-    Rng, SeedableRng,
+    SeedableRng,
     rngs::{StdRng, SysRng},
 };
 use rand_distr::{Distribution, Normal, StandardNormal};
@@ -142,8 +142,8 @@ impl<T: Copy> Matrix<T> {
 }
 
 // Unary operations
-impl<T: Float> Matrix<T> {
-    pub fn transpose(&self) -> Matrix<T> {
+impl<F: Float> Matrix<F> {
+    pub fn transpose(&self) -> Matrix<F> {
         let mut res = Matrix::zeros(self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
@@ -156,8 +156,8 @@ impl<T: Float> Matrix<T> {
 
 // Binary operations
 
-impl<T: Float> Matrix<T> {
-    pub fn add_(&mut self, other: &Matrix<T>) {
+impl<F: Float> Matrix<F> {
+    pub fn add_(&mut self, other: &Matrix<F>) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -166,7 +166,7 @@ impl<T: Float> Matrix<T> {
             .for_each(|(a, b)| *a = *a + *b);
     }
 
-    pub fn add(&self, other: &Matrix<T>) -> Matrix<T> {
+    pub fn add(&self, other: &Matrix<F>) -> Matrix<F> {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -180,8 +180,8 @@ impl<T: Float> Matrix<T> {
     }
 }
 
-impl<T: Float> Matrix<T> {
-    pub fn sub_(&mut self, other: &Matrix<T>) {
+impl<F: Float> Matrix<F> {
+    pub fn sub_(&mut self, other: &Matrix<F>) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -190,7 +190,7 @@ impl<T: Float> Matrix<T> {
             .for_each(|(a, b)| *a = *a - *b);
     }
 
-    pub fn sub(&self, other: &Matrix<T>) -> Matrix<T> {
+    pub fn sub(&self, other: &Matrix<F>) -> Matrix<F> {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -204,8 +204,8 @@ impl<T: Float> Matrix<T> {
     }
 }
 
-impl<T: Float> Matrix<T> {
-    pub fn dot_(&mut self, other: &Matrix<T>) {
+impl<F: Float> Matrix<F> {
+    pub fn dot_(&mut self, other: &Matrix<F>) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -214,7 +214,7 @@ impl<T: Float> Matrix<T> {
             .for_each(|(a, b)| *a = *a * *b);
     }
 
-    pub fn dot(&self, other: &Matrix<T>) -> Matrix<T> {
+    pub fn dot(&self, other: &Matrix<F>) -> Matrix<F> {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -227,22 +227,22 @@ impl<T: Float> Matrix<T> {
         Matrix::from_vec1d(self.rows, self.cols, data)
     }
 
-    pub fn mul_(&mut self, scale: T) {
+    pub fn mul_(&mut self, scale: F) {
         self.data.iter_mut().for_each(|a| *a = *a * scale);
     }
 
-    pub fn mul(&self, scale: T) -> Matrix<T> {
+    pub fn mul(&self, scale: F) -> Matrix<F> {
         let data = self.data.iter().map(|a| *a * scale).collect::<Vec<_>>();
 
         Matrix::from_vec1d(self.rows, self.cols, data)
     }
 }
 
-impl<T: Float> Matrix<T> {
-    pub fn mat_mul_(&mut self, other: &Matrix<T>) {
+impl<F: Float> Matrix<F> {
+    pub fn mat_mul_(&mut self, other: &Matrix<F>) {
         self.assert_matmul_compatible(other);
 
-        let mut data = vec![T::zero(); self.rows * other.cols];
+        let mut data = vec![F::zero(); self.rows * other.cols];
 
         for i in 0..self.rows {
             for k in 0..other.rows {
@@ -256,10 +256,10 @@ impl<T: Float> Matrix<T> {
         self.data = data;
     }
 
-    pub fn mat_mul(&self, other: &Matrix<T>) -> Matrix<T> {
+    pub fn mat_mul(&self, other: &Matrix<F>) -> Matrix<F> {
         self.assert_matmul_compatible(other);
 
-        let mut data = vec![T::zero(); self.rows * other.cols];
+        let mut data = vec![F::zero(); self.rows * other.cols];
 
         for i in 0..self.rows {
             for k in 0..other.rows {
