@@ -1,4 +1,15 @@
+use std::cell::RefCell;
+
 use num_traits::Float;
+use rand::{
+    Rng, SeedableRng,
+    rngs::{StdRng, SysRng},
+};
+use rand_distr::{Distribution, Normal, StandardNormal};
+
+thread_local! {
+    static RNG: RefCell<StdRng> = RefCell::new(StdRng::try_from_rng(&mut SysRng).unwrap());
+}
 
 pub struct Matrix<T> {
     rows: usize,
@@ -28,6 +39,23 @@ impl<T: Float> Matrix<T> {
             rows,
             cols,
             data: vec![T::zero(); rows * cols],
+        }
+    }
+
+    pub fn normal<F>(rows: usize, cols: usize, mean: F, std_dev: F) -> Matrix<F>
+    where
+        F: num_traits::Float,
+        StandardNormal: Distribution<F>,
+    {
+        let norm = Normal::new(mean, std_dev).unwrap();
+        Matrix {
+            rows,
+            cols,
+            data: RNG.with(|rng| {
+                norm.sample_iter(&mut *rng.borrow_mut())
+                    .take(rows * cols)
+                    .collect()
+            }),
         }
     }
 }
@@ -347,5 +375,46 @@ mod tests {
         // Add 10 to each element
         m.apply_(|x| x + 10.0);
         assert_eq!(m.data(), &vec![11.0, 12.0, 13.0, 14.0]);
+    }
+
+    #[test]
+    fn test_matrix_normal_dimensions() {
+        let m = Matrix::<f64>::normal(3, 4, 0.0, 1.0);
+        assert_eq!(m.rows(), 3);
+        assert_eq!(m.cols(), 4);
+        assert_eq!(m.data().len(), 12);
+    }
+
+    #[test]
+    fn test_matrix_normal_values_vary() {
+        let m = Matrix::<f32>::normal(10, 10, 0.0, 1.0);
+        // Check that not all values are the same (extremely unlikely with random normal distribution)
+        let first_value = m.data()[0];
+        let all_same = m.data().iter().all(|&x| x == first_value);
+        assert!(!all_same, "All values should not be identical");
+    }
+
+    #[test]
+    fn test_matrix_normal_statistical_properties() {
+        // Create a large matrix to test statistical properties
+        let mean = 5.0;
+        let std_dev = 2.0;
+        let m = Matrix::<f64>::normal(100, 100, mean, std_dev);
+
+        // Calculate sample mean
+        let sample_mean = m.data().iter().sum::<f64>() / m.data().len() as f64;
+
+        // Calculate sample standard deviation
+        let variance = m.data().iter()
+            .map(|&x| (x - sample_mean).powi(2))
+            .sum::<f64>() / m.data().len() as f64;
+        let sample_std_dev = variance.sqrt();
+
+        // With 10000 samples, the sample mean should be close to the true mean
+        // Using a generous tolerance for randomness
+        assert!((sample_mean - mean).abs() < 0.5,
+            "Sample mean {} should be close to {}", sample_mean, mean);
+        assert!((sample_std_dev - std_dev).abs() < 0.5,
+            "Sample std_dev {} should be close to {}", sample_std_dev, std_dev);
     }
 }
