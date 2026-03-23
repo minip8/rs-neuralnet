@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use num_traits::Float;
 
 pub struct Matrix<T> {
     rows: usize,
@@ -22,8 +22,26 @@ impl<T> Matrix<T> {
 }
 
 // Constructors
-impl<T: Copy + Default> Matrix<T> {
+impl<T: Float> Matrix<T> {
     pub fn zeros(rows: usize, cols: usize) -> Matrix<T> {
+        Matrix {
+            rows,
+            cols,
+            data: vec![T::zero(); rows * cols],
+        }
+    }
+}
+
+impl<T> Matrix<T> {
+    pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Matrix<T> {
+        Matrix::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
+
+        Matrix { rows, cols, data }
+    }
+}
+
+impl<T: Copy + Default> Matrix<T> {
+    pub fn defaults(rows: usize, cols: usize) -> Matrix<T> {
         Matrix {
             rows,
             cols,
@@ -31,18 +49,12 @@ impl<T: Copy + Default> Matrix<T> {
         }
     }
 
-    pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Matrix<T> {
-        Matrix::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
-
-        Matrix { rows, cols, data }
-    }
-
     pub fn from_vec2d(data2d: Vec<Vec<T>>) -> Matrix<T> {
         Matrix::assert_rowcol_dimensions_match_data2d(&data2d);
 
         let rows = data2d.len();
         let cols = data2d[0].len();
-        let mut res = Matrix::zeros(rows, cols);
+        let mut res = Matrix::defaults(rows, cols);
         for i in 0..rows {
             for j in 0..cols {
                 res.set_(i, j, data2d[i][j]);
@@ -102,7 +114,7 @@ impl<T: Copy> Matrix<T> {
 }
 
 // Unary operations
-impl<T: Copy + Default> Matrix<T> {
+impl<T: Float> Matrix<T> {
     pub fn transpose(&self) -> Matrix<T> {
         let mut res = Matrix::zeros(self.cols, self.rows);
         for i in 0..self.rows {
@@ -116,7 +128,7 @@ impl<T: Copy + Default> Matrix<T> {
 
 // Binary operations
 
-impl<T: Copy + Default + Add<Output = T>> Matrix<T> {
+impl<T: Float> Matrix<T> {
     pub fn add_(&mut self, other: &Matrix<T>) {
         self.assert_same_dimensions(other);
 
@@ -140,7 +152,7 @@ impl<T: Copy + Default + Add<Output = T>> Matrix<T> {
     }
 }
 
-impl<T: Copy + Default + Sub<Output = T>> Matrix<T> {
+impl<T: Float> Matrix<T> {
     pub fn sub_(&mut self, other: &Matrix<T>) {
         self.assert_same_dimensions(other);
 
@@ -164,7 +176,7 @@ impl<T: Copy + Default + Sub<Output = T>> Matrix<T> {
     }
 }
 
-impl<T: Copy + Default + Mul<Output = T>> Matrix<T> {
+impl<T: Float> Matrix<T> {
     pub fn dot_(&mut self, other: &Matrix<T>) {
         self.assert_same_dimensions(other);
 
@@ -198,11 +210,11 @@ impl<T: Copy + Default + Mul<Output = T>> Matrix<T> {
     }
 }
 
-impl<T: Copy + Default + Mul<Output = T> + Add<Output = T>> Matrix<T> {
+impl<T: Float> Matrix<T> {
     pub fn mat_mul_(&mut self, other: &Matrix<T>) {
         self.assert_matmul_compatible(other);
 
-        let mut data = vec![T::default(); self.rows * other.cols];
+        let mut data = vec![T::zero(); self.rows * other.cols];
 
         for i in 0..self.rows {
             for k in 0..other.rows {
@@ -219,7 +231,7 @@ impl<T: Copy + Default + Mul<Output = T> + Add<Output = T>> Matrix<T> {
     pub fn mat_mul(&self, other: &Matrix<T>) -> Matrix<T> {
         self.assert_matmul_compatible(other);
 
-        let mut data = vec![T::default(); self.rows * other.cols];
+        let mut data = vec![T::zero(); self.rows * other.cols];
 
         for i in 0..self.rows {
             for k in 0..other.rows {
@@ -254,71 +266,55 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_i32() {
-        let m: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
-        assert_eq!(m.rows(), 2);
-        assert_eq!(m.cols(), 2);
-        assert_eq!(m.data(), &vec![1, 2, 3, 4]);
-    }
-
-    #[test]
-    fn test_matrix_i64() {
-        let m: Matrix<i64> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
-        assert_eq!(m.rows(), 2);
-        assert_eq!(m.cols(), 2);
-        assert_eq!(m.data(), &vec![1, 2, 3, 4]);
-    }
-
-    #[test]
     fn test_matrix_add() {
-        let m1: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
-        let m2: Matrix<i32> = Matrix::from_vec2d(vec![vec![5, 6], vec![7, 8]]);
+        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
         let result = m1.add(&m2);
-        assert_eq!(result.data(), &vec![6, 8, 10, 12]);
+        assert_eq!(result.data(), &vec![6.0, 8.0, 10.0, 12.0]);
     }
 
     #[test]
     fn test_matrix_sub() {
-        let m1: Matrix<i32> = Matrix::from_vec2d(vec![vec![5, 6], vec![7, 8]]);
-        let m2: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
+        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
+        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         let result = m1.sub(&m2);
-        assert_eq!(result.data(), &vec![4, 4, 4, 4]);
+        assert_eq!(result.data(), &vec![4.0, 4.0, 4.0, 4.0]);
     }
 
     #[test]
     fn test_matrix_dot() {
-        let m1: Matrix<i32> = Matrix::from_vec2d(vec![vec![2, 3], vec![4, 5]]);
-        let m2: Matrix<i32> = Matrix::from_vec2d(vec![vec![2, 2], vec![3, 3]]);
+        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![2.0, 3.0], vec![4.0, 5.0]]);
+        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![2.0, 2.0], vec![3.0, 3.0]]);
         let result = m1.dot(&m2);
-        assert_eq!(result.data(), &vec![4, 6, 12, 15]);
+        assert_eq!(result.data(), &vec![4.0, 6.0, 12.0, 15.0]);
     }
 
     #[test]
     fn test_matrix_mul_scalar() {
-        let m: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
-        let result = m.mul(2);
-        assert_eq!(result.data(), &vec![2, 4, 6, 8]);
+        let m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let result = m.mul(2.0);
+        assert_eq!(result.data(), &vec![2.0, 4.0, 6.0, 8.0]);
     }
 
     #[test]
     fn test_matrix_transpose() {
-        let m: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2, 3], vec![4, 5, 6]]);
+        let m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]]);
         let result = m.transpose();
         assert_eq!(result.rows(), 3);
         assert_eq!(result.cols(), 2);
-        assert_eq!(result.data(), &vec![1, 4, 2, 5, 3, 6]);
+        assert_eq!(result.data(), &vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]);
     }
 
     #[test]
     fn test_matrix_mat_mul() {
-        let m1: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
-        let m2: Matrix<i32> = Matrix::from_vec2d(vec![vec![5, 6], vec![7, 8]]);
+        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
         let result = m1.mat_mul(&m2);
         assert_eq!(result.rows(), 2);
         assert_eq!(result.cols(), 2);
         // [1*5 + 2*7, 1*6 + 2*8] = [19, 22]
         // [3*5 + 4*7, 3*6 + 4*8] = [43, 50]
-        assert_eq!(result.data(), &vec![19, 22, 43, 50]);
+        assert_eq!(result.data(), &vec![19.0, 22.0, 43.0, 50.0]);
     }
 
     #[test]
@@ -331,18 +327,18 @@ mod tests {
 
     #[test]
     fn test_matrix_from_vec1d() {
-        let m: Matrix<i32> = Matrix::from_vec1d(2, 2, vec![1, 2, 3, 4]);
+        let m: Matrix<f64> = Matrix::from_vec1d(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
         assert_eq!(m.rows(), 2);
         assert_eq!(m.cols(), 2);
-        assert_eq!(m.data(), &vec![1, 2, 3, 4]);
+        assert_eq!(m.data(), &vec![1.0, 2.0, 3.0, 4.0]);
     }
 
     #[test]
     fn test_matrix_apply() {
-        let mut m: Matrix<i32> = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
+        let mut m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         // Double each element
-        m.apply_(|x| 2 * x);
-        assert_eq!(m.data(), &vec![2, 4, 6, 8]);
+        m.apply_(|x| 2.0 * x);
+        assert_eq!(m.data(), &vec![2.0, 4.0, 6.0, 8.0]);
     }
 
     #[test]
