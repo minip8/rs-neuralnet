@@ -405,16 +405,27 @@ mod tests {
         let sample_mean = m.data().iter().sum::<f64>() / m.data().len() as f64;
 
         // Calculate sample standard deviation
-        let variance = m.data().iter()
+        let variance = m
+            .data()
+            .iter()
             .map(|&x| (x - sample_mean).powi(2))
-            .sum::<f64>() / m.data().len() as f64;
+            .sum::<f64>()
+            / m.data().len() as f64;
         let sample_std_dev = variance.sqrt();
 
         // With 10000 samples, the sample mean should be close to the true mean
         // Using a generous tolerance for randomness
-        assert!((sample_mean - mean).abs() < 0.5,
-            "Sample mean {} should be close to {}", sample_mean, mean);
-        assert!((sample_std_dev - std_dev).abs() < 0.5,
-            "Sample std_dev {} should be close to {}", sample_std_dev, std_dev);
+        assert!(
+            (sample_mean - mean).abs() < 0.5,
+            "Sample mean {} should be close to {}",
+            sample_mean,
+            mean
+        );
+        assert!(
+            (sample_std_dev - std_dev).abs() < 0.5,
+            "Sample std_dev {} should be close to {}",
+            sample_std_dev,
+            std_dev
+        );
     }
 }
