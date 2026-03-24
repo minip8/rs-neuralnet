@@ -17,7 +17,7 @@ where
     F: Float,
     StandardNormal: Distribution<F>,
 {
-    pub fn new(input_size: usize, output_size: usize) -> Self {
+    pub fn normal_relu(input_size: usize, output_size: usize) -> Self {
         Self {
             weights: Matrix::<F>::normal(
                 input_size,
