@@ -179,6 +179,17 @@ impl<F: Float> Matrix<F> {
 
         Matrix::from_vec1d(self.rows, self.cols, data)
     }
+
+    pub fn add_to_all_rows(&self, other: &Matrix<F>) -> Matrix<F> {
+        Matrix::assert_row_add_compatible(&self, other);
+        let mut res = Matrix::zeros(self.rows, self.cols);
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                res.set_(i, j, res.get(i, j) + other.get(0, j));
+            }
+        }
+        res
+    }
 }
 
 impl<F: Float> Matrix<F> {
