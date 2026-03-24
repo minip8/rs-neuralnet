@@ -115,6 +115,19 @@ impl<T> Matrix<T> {
     fn assert_idx_ok(&self, idx: usize) {
         debug_assert!(idx < self.data.len());
     }
+
+    fn assert_row_vector(m: &Matrix<T>) {
+        debug_assert!(m.rows == 1);
+    }
+
+    fn assert_row_add_compatible(&self, other: &Matrix<T>) {
+        Matrix::assert_row_vector(other);
+        debug_assert_eq!(self.cols, other.cols);
+    }
+
+    fn assert_same_cols(&self, other: &Matrix<T>) {
+        debug_assert_eq!(self.cols, other.cols);
+    }
 }
 
 // QOL
@@ -283,6 +296,26 @@ impl<F: Float> Matrix<F> {
         }
         Matrix::from_vec1d(self.rows, other.cols, data)
     }
+
+    /// self is a 1 x M matrix
+    /// other is a N x M matrix
+    /// returns a row vector A, where A[0, i] is given by MSE(self, other[i])
+    fn mse(&self, other: &Matrix<F>) -> Matrix<F> {
+        self.assert_same_cols(other);
+        let mut res = Matrix::zeros(1, other.rows);
+
+        for i in 0..other.rows {
+            let mse = {
+                let mut accum = F::zero();
+                for j in 0..other.cols {
+                    accum = accum + (self.get(0, j) - other.get(i, j)).powf(F::from(2).unwrap());
+                }
+                accum
+            };
+            res.set_(0, i, mse.div(F::from(other.cols).unwrap()));
+        }
+        res
+    }
 }
 
 #[cfg(test)]
@@ -439,5 +472,70 @@ mod tests {
             sample_std_dev,
             std_dev
         );
+    }
+
+    #[test]
+    fn test_matrix_mse_basic() {
+        // self is 1 x 3 (row vector)
+        let self_vec = Matrix::<f64>::from_vec2d(vec![vec![1.0, 2.0, 3.0]]);
+        // other is 2 x 3 (two row vectors)
+        let other = Matrix::<f64>::from_vec2d(vec![
+            vec![1.0, 2.0, 3.0], // MSE with self should be 0
+            vec![2.0, 3.0, 4.0], // MSE with self should be (1^2 + 1^2 + 1^2) / 3 = 1.0
+        ]);
+
+        let result = self_vec.mse(&other);
+
+        // Result should be 1 x 2 (one MSE value per row of other)
+        assert_eq!(result.rows(), 1, "Result should have 1 row");
+        assert_eq!(
+            result.cols(),
+            2,
+            "Result should have 2 columns (one per row of other)"
+        );
+
+        // Check MSE values
+        assert_eq!(
+            result.get(0, 0),
+            0.0,
+            "MSE of identical vectors should be 0"
+        );
+        assert_eq!(result.get(0, 1), 1.0, "MSE should be 1.0");
+    }
+
+    #[test]
+    fn test_matrix_mse_dimensions() {
+        // Test with different dimensions
+        let self_vec = Matrix::<f32>::from_vec2d(vec![vec![0.0, 0.0, 0.0, 0.0]]);
+        let other = Matrix::<f32>::from_vec2d(vec![
+            vec![1.0, 1.0, 1.0, 1.0],
+            vec![2.0, 2.0, 2.0, 2.0],
+            vec![3.0, 3.0, 3.0, 3.0],
+        ]);
+
+        let result = self_vec.mse(&other);
+
+        // Result should be 1 x 3 (one MSE per row of other)
+        assert_eq!(result.rows(), 1);
+        assert_eq!(result.cols(), 3);
+
+        // MSE(0, [1,1,1,1]) = (1+1+1+1)/4 = 1.0
+        // MSE(0, [2,2,2,2]) = (4+4+4+4)/4 = 4.0
+        // MSE(0, [3,3,3,3]) = (9+9+9+9)/4 = 9.0
+        assert_eq!(result.get(0, 0), 1.0);
+        assert_eq!(result.get(0, 1), 4.0);
+        assert_eq!(result.get(0, 2), 9.0);
+    }
+
+    #[test]
+    fn test_matrix_mse_single_element() {
+        let self_vec = Matrix::<f64>::from_vec2d(vec![vec![5.0]]);
+        let other = Matrix::<f64>::from_vec2d(vec![vec![5.0], vec![7.0]]);
+
+        let result = self_vec.mse(&other);
+        assert_eq!(result.rows(), 1);
+        assert_eq!(result.cols(), 2);
+        assert_eq!(result.get(0, 0), 0.0); // (5-5)^2/1 = 0
+        assert_eq!(result.get(0, 1), 4.0); // (5-7)^2/1 = 4
     }
 }
