@@ -11,6 +11,7 @@ thread_local! {
     static RNG: RefCell<StdRng> = RefCell::new(StdRng::try_from_rng(&mut SysRng).unwrap());
 }
 
+#[derive(Clone)]
 pub struct Matrix<T> {
     rows: usize,
     cols: usize,
