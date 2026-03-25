@@ -125,6 +125,11 @@ impl<T> Matrix<T> {
         debug_assert_eq!(self.cols, other.cols);
     }
 
+    fn assert_rowcol_add_compatible(&self, other: &Matrix<T>) {
+        Matrix::assert_row_vector(other);
+        debug_assert_eq!(self.rows, other.cols);
+    }
+
     fn assert_same_cols(&self, other: &Matrix<T>) {
         debug_assert_eq!(self.cols, other.cols);
     }
@@ -199,6 +204,17 @@ impl<F: Float> Matrix<F> {
         for i in 0..self.rows {
             for j in 0..self.cols {
                 res.set_(i, j, res.get(i, j) + other.get(0, j));
+            }
+        }
+        res
+    }
+
+    pub fn add_row_to_all_cols(&self, other: &Matrix<F>) -> Matrix<F> {
+        Matrix::assert_rowcol_add_compatible(&self, other);
+        let mut res = Matrix::zeros(self.rows, self.cols);
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                res.set_(i, j, other.get(0, i));
             }
         }
         res
