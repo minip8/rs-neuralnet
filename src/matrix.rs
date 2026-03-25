@@ -137,22 +137,22 @@ impl<T> Matrix<T> {
 
 // QOL
 impl<T: Copy> Matrix<T> {
-    fn rowcol_to_idx(&self, r: usize, c: usize) -> usize {
+    pub fn rowcol_to_idx(&self, r: usize, c: usize) -> usize {
         let idx = r * self.cols + c;
         self.assert_idx_ok(idx);
         idx
     }
 
-    fn get(&self, r: usize, c: usize) -> T {
+    pub fn get(&self, r: usize, c: usize) -> T {
         self.data[self.rowcol_to_idx(r, c)]
     }
 
-    fn set_(&mut self, r: usize, c: usize, v: T) {
+    pub fn set_(&mut self, r: usize, c: usize, v: T) {
         let idx = self.rowcol_to_idx(r, c);
         self.data[idx] = v;
     }
 
-    fn apply_<F>(&mut self, f: F)
+    pub fn apply_<F>(&mut self, f: F)
     where
         F: Fn(&T) -> T,
     {
