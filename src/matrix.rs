@@ -158,6 +158,14 @@ impl<T: Copy> Matrix<T> {
     {
         self.data.iter_mut().for_each(|x| *x = f(x));
     }
+
+    pub fn apply<F>(&self, f: F) -> Self
+    where
+        F: Fn(&T) -> T,
+    {
+        let data = self.data.iter().map(|x| f(x)).collect::<Vec<_>>();
+        Self::from_vec1d(self.rows, self.cols, data)
+    }
 }
 
 // Unary operations
