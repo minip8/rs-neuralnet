@@ -230,7 +230,7 @@ impl<F: Float> Matrix<F> {
 }
 
 impl<F: Float> Matrix<F> {
-    pub fn dot_(&mut self, other: &Matrix<F>) {
+    pub fn hadamard_(&mut self, other: &Matrix<F>) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -239,7 +239,7 @@ impl<F: Float> Matrix<F> {
             .for_each(|(a, b)| *a = *a * *b);
     }
 
-    pub fn dot(&self, other: &Matrix<F>) -> Matrix<F> {
+    pub fn hadamard(&self, other: &Matrix<F>) -> Matrix<F> {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -355,10 +355,10 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_dot() {
+    fn test_matrix_hadamard() {
         let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![2.0, 3.0], vec![4.0, 5.0]]);
         let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![2.0, 2.0], vec![3.0, 3.0]]);
-        let result = m1.dot(&m2);
+        let result = m1.hadamard(&m2);
         assert_eq!(result.data(), &vec![4.0, 6.0, 12.0, 15.0]);
     }
 
