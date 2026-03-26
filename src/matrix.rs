@@ -269,6 +269,20 @@ impl<F: Float> Matrix<F> {
         self
     }
 
+    pub fn mul_row_(&mut self, row: usize, scale: F) -> &mut Self {
+        let start = row * self.cols;
+        let end = row * (self.cols + 1);
+        for i in start..end {
+            self.data[i] = self.data[i] * scale;
+        }
+        self
+    }
+
+    pub fn mul_row(mut self, row: usize, scale: F) -> Self {
+        self.mul_row_(row, scale);
+        self
+    }
+
     pub fn dot(&self, other: &Self) -> F {
         self.assert_same_dimensions(other);
         self.data
