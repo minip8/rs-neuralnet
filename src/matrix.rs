@@ -35,8 +35,8 @@ impl<T> Matrix<T> {
 
 // Constructors
 impl<T: Float> Matrix<T> {
-    pub fn zeros(rows: usize, cols: usize) -> Matrix<T> {
-        Matrix {
+    pub fn zeros(rows: usize, cols: usize) -> Self {
+        Self {
             rows,
             cols,
             data: vec![T::zero(); rows * cols],
@@ -62,28 +62,28 @@ impl<T: Float> Matrix<T> {
 }
 
 impl<T> Matrix<T> {
-    pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Matrix<T> {
-        Matrix::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
+    pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Self {
+        Self::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
 
-        Matrix { rows, cols, data }
+        Self { rows, cols, data }
     }
 }
 
 impl<T: Copy + Default> Matrix<T> {
-    pub fn defaults(rows: usize, cols: usize) -> Matrix<T> {
-        Matrix {
+    pub fn defaults(rows: usize, cols: usize) -> Self {
+        Self {
             rows,
             cols,
             data: vec![T::default(); rows * cols],
         }
     }
 
-    pub fn from_vec2d(data2d: Vec<Vec<T>>) -> Matrix<T> {
-        Matrix::assert_rowcol_dimensions_match_data2d(&data2d);
+    pub fn from_vec2d(data2d: Vec<Vec<T>>) -> Self {
+        Self::assert_rowcol_dimensions_match_data2d(&data2d);
 
         let rows = data2d.len();
         let cols = data2d[0].len();
-        let mut res = Matrix::defaults(rows, cols);
+        let mut res = Self::defaults(rows, cols);
         for i in 0..rows {
             for j in 0..cols {
                 res.set_(i, j, data2d[i][j]);
@@ -104,11 +104,11 @@ impl<T> Matrix<T> {
         debug_assert!(data2d.iter().all(|r| r.len() == data2d[0].len()));
     }
 
-    fn assert_same_dimensions(&self, other: &Matrix<T>) {
+    fn assert_same_dimensions(&self, other: &Self) {
         debug_assert_eq!((self.rows, self.cols), (other.rows, other.cols));
     }
 
-    fn assert_matmul_compatible(&self, other: &Matrix<T>) {
+    fn assert_matmul_compatible(&self, other: &Self) {
         debug_assert_eq!(self.cols, other.rows);
     }
 
@@ -116,21 +116,21 @@ impl<T> Matrix<T> {
         debug_assert!(idx < self.data.len());
     }
 
-    fn assert_row_vector(m: &Matrix<T>) {
+    fn assert_row_vector(m: &Self) {
         debug_assert!(m.rows == 1);
     }
 
-    fn assert_row_add_compatible(&self, other: &Matrix<T>) {
-        Matrix::assert_row_vector(other);
+    fn assert_row_add_compatible(&self, other: &Self) {
+        Self::assert_row_vector(other);
         debug_assert_eq!(self.cols, other.cols);
     }
 
-    fn assert_rowcol_add_compatible(&self, other: &Matrix<T>) {
-        Matrix::assert_row_vector(other);
+    fn assert_rowcol_add_compatible(&self, other: &Self) {
+        Self::assert_row_vector(other);
         debug_assert_eq!(self.rows, other.cols);
     }
 
-    fn assert_same_cols(&self, other: &Matrix<T>) {
+    fn assert_same_cols(&self, other: &Self) {
         debug_assert_eq!(self.cols, other.cols);
     }
 }
@@ -170,8 +170,8 @@ impl<T: Copy> Matrix<T> {
 
 // Unary operations
 impl<F: Float> Matrix<F> {
-    pub fn transpose(&self) -> Matrix<F> {
-        let mut res = Matrix::zeros(self.cols, self.rows);
+    pub fn transpose(&self) -> Self {
+        let mut res = Self::zeros(self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 res.set_(j, i, self.get(i, j));
@@ -184,7 +184,7 @@ impl<F: Float> Matrix<F> {
 // Binary operations
 
 impl<F: Float> Matrix<F> {
-    pub fn add_(&mut self, other: &Matrix<F>) {
+    pub fn add_(&mut self, other: &Self) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -193,7 +193,7 @@ impl<F: Float> Matrix<F> {
             .for_each(|(a, b)| *a = *a + *b);
     }
 
-    pub fn add(&self, other: &Matrix<F>) -> Matrix<F> {
+    pub fn add(&self, other: &Self) -> Self {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -203,12 +203,12 @@ impl<F: Float> Matrix<F> {
             .map(|(a, b)| *a + *b)
             .collect::<Vec<_>>();
 
-        Matrix::from_vec1d(self.rows, self.cols, data)
+        Self::from_vec1d(self.rows, self.cols, data)
     }
 
-    pub fn add_row_to_all_rows(&self, other: &Matrix<F>) -> Matrix<F> {
-        Matrix::assert_row_add_compatible(&self, other);
-        let mut res = Matrix::zeros(self.rows, self.cols);
+    pub fn add_row_to_all_rows(&self, other: &Self) -> Self {
+        Self::assert_row_add_compatible(&self, other);
+        let mut res = Self::zeros(self.rows, self.cols);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 res.set_(i, j, res.get(i, j) + other.get(0, j));
@@ -217,9 +217,9 @@ impl<F: Float> Matrix<F> {
         res
     }
 
-    pub fn add_row_to_all_cols(&self, other: &Matrix<F>) -> Matrix<F> {
-        Matrix::assert_rowcol_add_compatible(&self, other);
-        let mut res = Matrix::zeros(self.rows, self.cols);
+    pub fn add_row_to_all_cols(&self, other: &Self) -> Self {
+        Self::assert_rowcol_add_compatible(&self, other);
+        let mut res = Self::zeros(self.rows, self.cols);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 res.set_(i, j, other.get(0, i));
@@ -228,7 +228,7 @@ impl<F: Float> Matrix<F> {
         res
     }
 
-    pub fn sub_(&mut self, other: &Matrix<F>) {
+    pub fn sub_(&mut self, other: &Self) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -237,7 +237,7 @@ impl<F: Float> Matrix<F> {
             .for_each(|(a, b)| *a = *a - *b);
     }
 
-    pub fn sub(&self, other: &Matrix<F>) -> Matrix<F> {
+    pub fn sub(&self, other: &Self) -> Self {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -247,10 +247,10 @@ impl<F: Float> Matrix<F> {
             .map(|(a, b)| *a - *b)
             .collect::<Vec<_>>();
 
-        Matrix::from_vec1d(self.rows, self.cols, data)
+        Self::from_vec1d(self.rows, self.cols, data)
     }
 
-    pub fn hadamard_(&mut self, other: &Matrix<F>) {
+    pub fn hadamard_(&mut self, other: &Self) {
         self.assert_same_dimensions(other);
 
         self.data
@@ -259,7 +259,7 @@ impl<F: Float> Matrix<F> {
             .for_each(|(a, b)| *a = *a * *b);
     }
 
-    pub fn hadamard(&self, other: &Matrix<F>) -> Matrix<F> {
+    pub fn hadamard(&self, other: &Self) -> Self {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -269,20 +269,20 @@ impl<F: Float> Matrix<F> {
             .map(|(a, b)| *a * *b)
             .collect::<Vec<_>>();
 
-        Matrix::from_vec1d(self.rows, self.cols, data)
+        Self::from_vec1d(self.rows, self.cols, data)
     }
 
     pub fn mul_(&mut self, scale: F) {
         self.data.iter_mut().for_each(|a| *a = *a * scale);
     }
 
-    pub fn mul(&self, scale: F) -> Matrix<F> {
+    pub fn mul(&self, scale: F) -> Self {
         let data = self.data.iter().map(|a| *a * scale).collect::<Vec<_>>();
 
-        Matrix::from_vec1d(self.rows, self.cols, data)
+        Self::from_vec1d(self.rows, self.cols, data)
     }
 
-    pub fn dot(&self, other: &Matrix<F>) -> F {
+    pub fn dot(&self, other: &Self) -> F {
         self.assert_same_dimensions(other);
         self.data
             .iter()
@@ -290,7 +290,7 @@ impl<F: Float> Matrix<F> {
             .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
     }
 
-    pub fn mat_mul_(&mut self, other: &Matrix<F>) {
+    pub fn mat_mul_(&mut self, other: &Self) {
         self.assert_matmul_compatible(other);
 
         let mut data = vec![F::zero(); self.rows * other.cols];
@@ -307,7 +307,7 @@ impl<F: Float> Matrix<F> {
         self.data = data;
     }
 
-    pub fn mat_mul(&self, other: &Matrix<F>) -> Matrix<F> {
+    pub fn mat_mul(&self, other: &Self) -> Self {
         self.assert_matmul_compatible(other);
 
         let mut data = vec![F::zero(); self.rows * other.cols];
@@ -320,15 +320,15 @@ impl<F: Float> Matrix<F> {
                 }
             }
         }
-        Matrix::from_vec1d(self.rows, other.cols, data)
+        Self::from_vec1d(self.rows, other.cols, data)
     }
 
     /// self is a 1 x M matrix
     /// other is a N x M matrix
     /// returns a row vector A, where A[0, i] is given by MSE(self, other[i])
-    fn mse(&self, other: &Matrix<F>) -> Matrix<F> {
+    fn mse(&self, other: &Self) -> Self {
         self.assert_same_cols(other);
-        let mut res = Matrix::zeros(1, other.rows);
+        let mut res = Self::zeros(1, other.rows);
 
         for i in 0..other.rows {
             let mse = {
