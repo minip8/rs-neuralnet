@@ -153,6 +153,20 @@ impl<T: Copy> Matrix<T> {
         self
     }
 
+    pub fn set_row_(&mut self, r: usize, values: &[T]) -> &mut Self {
+        let start = self.rowcol_to_idx(r, 0);
+        let end = self.rowcol_to_idx(r + 1, 0);
+        for i in start..end {
+            self.data[i] = values[i];
+        }
+        self
+    }
+
+    pub fn set_row(mut self, r: usize, values: &[T]) -> Self {
+        self.set_row_(r, values);
+        self
+    }
+
     pub fn apply_<F>(&mut self, f: F) -> &mut Self
     where
         F: Fn(T) -> T,
