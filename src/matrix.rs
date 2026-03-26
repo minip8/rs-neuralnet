@@ -147,16 +147,18 @@ impl<T: Copy> Matrix<T> {
         self.data[self.rowcol_to_idx(r, c)]
     }
 
-    pub fn set_(&mut self, r: usize, c: usize, v: T) {
+    pub fn set_(&mut self, r: usize, c: usize, v: T) -> &mut Self {
         let idx = self.rowcol_to_idx(r, c);
         self.data[idx] = v;
+        self
     }
 
-    pub fn apply_<F>(&mut self, f: F)
+    pub fn apply_<F>(&mut self, f: F) -> &mut Self
     where
         F: Fn(T) -> T,
     {
         self.data.iter_mut().for_each(|x| *x = f(*x));
+        self
     }
 
     pub fn apply<F>(&self, f: F) -> Self
@@ -184,16 +186,17 @@ impl<F: Float> Matrix<F> {
 // Binary operations
 
 impl<F: Float> Matrix<F> {
-    pub fn add_(&mut self, other: &Self) {
+    pub fn add_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
         self.data
             .iter_mut()
             .zip(other.data.iter())
             .for_each(|(a, b)| *a = *a + *b);
+        self
     }
 
-    pub fn add(&self, other: &Self) -> Self {
+    pub fn add(self, other: &Self) -> Self {
         self.assert_same_dimensions(other);
 
         let data = self
@@ -228,13 +231,14 @@ impl<F: Float> Matrix<F> {
         res
     }
 
-    pub fn sub_(&mut self, other: &Self) {
+    pub fn sub_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
         self.data
             .iter_mut()
             .zip(other.data.iter())
             .for_each(|(a, b)| *a = *a - *b);
+        self
     }
 
     pub fn sub(&self, other: &Self) -> Self {
@@ -250,13 +254,14 @@ impl<F: Float> Matrix<F> {
         Self::from_vec1d(self.rows, self.cols, data)
     }
 
-    pub fn hadamard_(&mut self, other: &Self) {
+    pub fn hadamard_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
         self.data
             .iter_mut()
             .zip(other.data.iter())
             .for_each(|(a, b)| *a = *a * *b);
+        self
     }
 
     pub fn hadamard(&self, other: &Self) -> Self {
@@ -272,8 +277,9 @@ impl<F: Float> Matrix<F> {
         Self::from_vec1d(self.rows, self.cols, data)
     }
 
-    pub fn mul_(&mut self, scale: F) {
+    pub fn mul_(&mut self, scale: F) -> &mut Self {
         self.data.iter_mut().for_each(|a| *a = *a * scale);
+        self
     }
 
     pub fn mul(&self, scale: F) -> Self {
@@ -329,7 +335,7 @@ impl<F: Float> Matrix<F> {
         Self::from_vec1d(1, self.rows, data)
     }
 
-    pub fn mat_mul_(&mut self, other: &Self) {
+    pub fn mat_mul_(&mut self, other: &Self) -> &mut Self {
         self.assert_matmul_compatible(other);
 
         let mut data = vec![F::zero(); self.rows * other.cols];
@@ -344,6 +350,7 @@ impl<F: Float> Matrix<F> {
         }
         self.cols = other.cols;
         self.data = data;
+        self
     }
 
     pub fn mat_mul(&self, other: &Self) -> Self {
