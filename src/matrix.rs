@@ -285,6 +285,14 @@ impl<F: Float> Matrix<F> {
 
         Matrix::from_vec1d(self.rows, self.cols, data)
     }
+
+    pub fn dot(&self, other: &Matrix<F>) -> F {
+        self.assert_same_dimensions(other);
+        self.data
+            .iter()
+            .zip(other.data.iter())
+            .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
+    }
 }
 
 impl<F: Float> Matrix<F> {
