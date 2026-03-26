@@ -32,3 +32,43 @@ where
         }
     }
 }
+
+impl<F> Layer<F>
+where
+    F: Float,
+{
+    fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
+        self.input = a.clone();
+        let res = a.clone().mat_mul(&self.weights).add(&self.bias);
+        self.pre_activation = res.clone();
+
+        res.apply(|x| self.activation.forward(x))
+    }
+
+    /// Let N be the number of neurons in the previous layer
+    /// Let M be the number of neurons in this layer
+    /// Takes in dc/da (derivative of c w.r.t this layer's activation)
+    /// dc/da is a 1 x M row vector
+    ///
+    /// Computes dc/dw (derivative of c w.r.t this layer's weights) = dz/dw * da/dz * dc/da
+    ///                                                             = a(L-1)* da/dz * dc/da
+    /// Computes dc/db (derivative of c w.r.t this layer's bias)    = dz/db * da/dz * dc/da
+    ///                                                             = 1     * da/dz * dc/da
+    ///
+    /// Returns (dc w.r.t previous layer's activation, dc w.r.t this layer's weights)
+    fn backward(&mut self, dc_da: Matrix<F>) -> (Matrix<F>, Matrix<F>) {
+        let da_dz = self.pre_activation.apply(|x| self.activation.backward(x));
+        let dc_da_prev = self.weights.dot_rows_with_row(&da_dz).hadamard(&dc_da);
+
+        let dc_dw = {
+            let m = da_dz.hadamard(&dc_da);
+            let mut res = Matrix::<F>::zeros(self.input.rows(), self.pre_activation.cols());
+            for i in 0..res.rows() {
+                res.set_row_(i, m.data());
+                res.mul_row_(i, self.input.get(0, i));
+            }
+            res
+        };
+        (dc_da_prev, dc_dw)
+    }
+}
