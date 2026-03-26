@@ -376,6 +376,20 @@ impl<F: Float> Matrix<F> {
     }
 }
 
+impl<T> Matrix<T> {
+    pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {
+        self.data.iter()
+    }
+}
+
+impl<T> IntoIterator for Matrix<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
