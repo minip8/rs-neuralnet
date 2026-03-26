@@ -227,9 +227,7 @@ impl<F: Float> Matrix<F> {
         }
         res
     }
-}
 
-impl<F: Float> Matrix<F> {
     pub fn sub_(&mut self, other: &Matrix<F>) {
         self.assert_same_dimensions(other);
 
@@ -251,9 +249,7 @@ impl<F: Float> Matrix<F> {
 
         Matrix::from_vec1d(self.rows, self.cols, data)
     }
-}
 
-impl<F: Float> Matrix<F> {
     pub fn hadamard_(&mut self, other: &Matrix<F>) {
         self.assert_same_dimensions(other);
 
@@ -293,9 +289,7 @@ impl<F: Float> Matrix<F> {
             .zip(other.data.iter())
             .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
     }
-}
 
-impl<F: Float> Matrix<F> {
     pub fn mat_mul_(&mut self, other: &Matrix<F>) {
         self.assert_matmul_compatible(other);
 
