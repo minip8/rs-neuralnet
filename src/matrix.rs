@@ -309,6 +309,26 @@ impl<F: Float> Matrix<F> {
         Self::from_vec1d(1, self.rows, data)
     }
 
+    /// Takes a N x M matrix and a 1 x M matrix and dot products the row vector
+    /// with every row of the N x M matrix
+    /// Returns a row vector of the dot products
+    pub fn dot_rows_with_row(&self, other: &Self) -> Self {
+        self.assert_same_cols(other);
+
+        let mut data = vec![F::zero(); self.rows];
+        for i in 0..self.rows {
+            data[i] = {
+                let start = i * self.cols;
+                let end = i * (self.cols + 1);
+                self.data[start..end]
+                    .iter()
+                    .zip(other.data.iter())
+                    .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
+            }
+        }
+        Self::from_vec1d(1, self.rows, data)
+    }
+
     pub fn mat_mul_(&mut self, other: &Self) {
         self.assert_matmul_compatible(other);
 
