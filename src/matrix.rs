@@ -290,6 +290,25 @@ impl<F: Float> Matrix<F> {
             .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
     }
 
+    /// Takes two same dimensional matrices and dot products their rows together
+    /// Returns a row vector of the dot products
+    pub fn dot_rows(&self, other: &Self) -> Self {
+        self.assert_same_dimensions(other);
+
+        let mut data = vec![F::zero(); self.rows];
+        for i in 0..self.rows {
+            data[i] = {
+                let start = i * self.cols;
+                let end = i * (self.cols + 1);
+                self.data[start..end]
+                    .iter()
+                    .zip(other.data[start..end].iter())
+                    .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
+            }
+        }
+        Self::from_vec1d(1, self.rows, data)
+    }
+
     pub fn mat_mul_(&mut self, other: &Self) {
         self.assert_matmul_compatible(other);
 
