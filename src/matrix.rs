@@ -371,8 +371,8 @@ impl<F: Float> Matrix<F> {
 
     /// self is a 1 x M matrix
     /// other is a N x M matrix
-    /// returns a row vector A, where A[0, i] is given by MSE(self, other[i])
-    fn mse(&self, other: &Self) -> Self {
+    /// returns a 1 x N row vector A, where A[0, i] is given by MSE(self[0], other[i])
+    fn mses(&self, other: &Self) -> Self {
         self.assert_same_cols(other);
         let mut res = Self::zeros(1, other.rows);
 
