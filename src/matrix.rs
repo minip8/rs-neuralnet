@@ -133,6 +133,10 @@ impl<T> Matrix<T> {
     fn assert_same_cols(&self, other: &Self) {
         debug_assert_eq!(self.cols, other.cols);
     }
+
+    fn assert_singleton(&self) {
+        debug_assert_eq!((self.rows, self.cols), (1, 1));
+    }
 }
 
 // QOL
@@ -145,6 +149,11 @@ impl<T: Copy> Matrix<T> {
 
     pub fn get(&self, r: usize, c: usize) -> T {
         self.data[self.rowcol_to_idx(r, c)]
+    }
+
+    pub fn item(&self) -> T {
+        self.assert_singleton();
+        self.data[0]
     }
 
     pub fn set_(&mut self, r: usize, c: usize, v: T) -> &mut Self {
@@ -570,7 +579,7 @@ mod tests {
             vec![2.0, 3.0, 4.0], // MSE with self should be (1^2 + 1^2 + 1^2) / 3 = 1.0
         ]);
 
-        let result = self_vec.mse(&other);
+        let result = self_vec.mses(&other);
 
         // Result should be 1 x 2 (one MSE value per row of other)
         assert_eq!(result.rows(), 1, "Result should have 1 row");
@@ -599,7 +608,7 @@ mod tests {
             vec![3.0, 3.0, 3.0, 3.0],
         ]);
 
-        let result = self_vec.mse(&other);
+        let result = self_vec.mses(&other);
 
         // Result should be 1 x 3 (one MSE per row of other)
         assert_eq!(result.rows(), 1);
@@ -618,7 +627,7 @@ mod tests {
         let self_vec = Matrix::<f64>::from_vec2d(vec![vec![5.0]]);
         let other = Matrix::<f64>::from_vec2d(vec![vec![5.0], vec![7.0]]);
 
-        let result = self_vec.mse(&other);
+        let result = self_vec.mses(&other);
         assert_eq!(result.rows(), 1);
         assert_eq!(result.cols(), 2);
         assert_eq!(result.get(0, 0), 0.0); // (5-5)^2/1 = 0
