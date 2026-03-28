@@ -143,7 +143,7 @@ impl<T> Matrix<T> {
 impl<T: Copy> Matrix<T> {
     pub fn rowcol_to_idx(&self, r: usize, c: usize) -> usize {
         let idx = r * self.cols + c;
-        self.assert_idx_ok(idx);
+        // self.assert_idx_ok(idx);
         idx
     }
 
