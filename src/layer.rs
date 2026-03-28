@@ -29,7 +29,7 @@ where
             bias: Matrix::zeros(0, 0),
 
             // batch_size x input_size
-            input: Matrix::zeros(1, output_size),
+            input: Matrix::zeros(0, 0),
 
             // batch_size x output_size
             pre_activation: Matrix::zeros(0, 0),
