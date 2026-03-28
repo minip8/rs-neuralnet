@@ -62,7 +62,7 @@ where
     ///
     /// Returns (dc w.r.t previous layer's activation, dc w.r.t this layer's weights)
     fn backward(&mut self, dc_da: Matrix<F>) -> (Matrix<F>, Matrix<F>) {
-        let da_dz = self.pre_activation.apply(|x| self.activation.backward(x));
+        let da_dz = self.pre_activation.clone().apply(|x| self.activation.backward(x));
         let dc_da_prev = self.weights.dot_rows_with_row(&da_dz).hadamard(&dc_da);
 
         let dc_dw = {

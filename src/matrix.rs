@@ -184,12 +184,12 @@ impl<T: Copy> Matrix<T> {
         self
     }
 
-    pub fn apply<F>(&self, f: F) -> Self
+    pub fn apply<F>(mut self, f: F) -> Self
     where
         F: Fn(T) -> T,
     {
-        let data = self.data.iter().map(|&x| f(x)).collect::<Vec<_>>();
-        Self::from_vec1d(self.rows, self.cols, data)
+        self.apply_(f);
+        self
     }
 }
 
