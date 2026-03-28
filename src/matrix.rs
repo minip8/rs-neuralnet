@@ -242,7 +242,7 @@ impl<F: Float> Matrix<F> {
         let mut res = Self::zeros(self.rows, self.cols);
         for i in 0..self.rows {
             for j in 0..self.cols {
-                res.set_(i, j, other.get(0, i));
+                res.set_(i, j, self.get(i, j) + other.get(0, i));
             }
         }
         res
