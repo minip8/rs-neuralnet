@@ -399,6 +399,24 @@ impl<F: Float> Matrix<F> {
     }
 }
 
+impl<F: Float> Matrix<F> {
+    pub fn col_sum_(&mut self) -> &mut Self {
+        for i in 1..self.rows {
+            for j in 0..self.cols {
+                self.set_(0, j, self.get(0, j) + self.get(i, j));
+            }
+        }
+        self.rows = 1;
+        self.data.truncate(self.cols);
+        self
+    }
+
+    pub fn col_sum(mut self) -> Self {
+        self.col_sum_();
+        self
+    }
+}
+
 impl<T> Matrix<T> {
     pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {
         self.data.iter()
