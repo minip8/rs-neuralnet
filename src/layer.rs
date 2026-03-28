@@ -26,7 +26,7 @@ where
                 F::sqrt(F::from(2).unwrap() / F::from(input_size).unwrap()),
             ),
             // 1 x output_size
-            bias: Matrix::zeros(0, 0),
+            bias: Matrix::zeros(1, output_size),
 
             // batch_size x input_size
             input: Matrix::zeros(0, 0),
