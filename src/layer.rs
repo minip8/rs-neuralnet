@@ -42,9 +42,14 @@ impl<F> Layer<F>
 where
     F: Float,
 {
+    /// a is a batch_size x input_size matrix
+    /// a x weights is a batch_size x output_size matrix
     fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
         self.input = a.clone();
-        let res = a.clone().mat_mul(&self.weights).add_row_to_all_rows(&self.bias);
+        let res = a
+            .clone()
+            .mat_mul(&self.weights)
+            .add_row_to_all_rows(&self.bias);
         self.pre_activation = res.clone();
 
         res.apply(|x| self.activation.forward(x))
@@ -61,19 +66,26 @@ where
     ///                                                             = 1     * da/dz * dc/da
     ///
     /// Returns (dc w.r.t previous layer's activation, dc w.r.t this layer's weights)
-    fn backward(&mut self, dc_da: Matrix<F>) -> (Matrix<F>, Matrix<F>) {
-        let da_dz = self.pre_activation.clone().apply(|x| self.activation.backward(x));
-        let dc_da_prev = self.weights.dot_rows_with_row(&da_dz).hadamard(&dc_da);
+    fn backward(&mut self, dc_da: Matrix<F>) -> Matrix<F> {
+        let batch_size = self.input.rows();
+        let batch_size_inv = F::one() / F::from(batch_size).unwrap();
+        let inputs_transposed = self.input.clone().transpose();
+        let da_dz = self
+            .pre_activation
+            .clone()
+            .apply(|x| self.activation.backward(x));
 
-        let dc_dw = {
-            let m = da_dz.hadamard(&dc_da);
-            let mut res = Matrix::<F>::zeros(self.input.rows(), self.pre_activation.cols());
-            for i in 0..res.rows() {
-                res.set_row_(i, m.data());
-                res.mul_row_(i, self.input.get(0, i));
-            }
-            res
-        };
-        (dc_da_prev, dc_dw)
+        let delta = dc_da.clone().hadamard(&da_dz);
+
+        let dc_dw = inputs_transposed.mat_mul(&delta);
+
+        let dc_db = delta.clone().col_sum().mul(batch_size_inv);
+
+        let dc_da_prev = delta.mat_mul(&self.weights.transpose());
+
+        self.weights.sub_(&dc_dw);
+        self.bias.sub_(&dc_db);
+
+        dc_da_prev
     }
 }
