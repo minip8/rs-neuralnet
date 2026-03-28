@@ -166,7 +166,7 @@ impl<T: Copy> Matrix<T> {
         let start = self.rowcol_to_idx(r, 0);
         let end = self.rowcol_to_idx(r + 1, 0);
         for i in start..end {
-            self.data[i] = values[i];
+            self.data[i] = values[i - start];
         }
         self
     }
