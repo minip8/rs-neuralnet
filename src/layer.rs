@@ -25,9 +25,14 @@ where
                 F::zero(),
                 F::sqrt(F::from(2).unwrap() / F::from(input_size).unwrap()),
             ),
-            bias: Matrix::zeros(1, output_size),
-            input: Matrix::zeros(1, input_size),
-            pre_activation: Matrix::zeros(1, output_size),
+            // batch_size x input_size
+            bias: Matrix::zeros(0, 0),
+
+            // 1 x output_size
+            input: Matrix::zeros(1, output_size),
+
+            // batch_size x output_size
+            pre_activation: Matrix::zeros(0, 0),
             activation: Activation::relu(),
         }
     }
@@ -39,7 +44,7 @@ where
 {
     fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
         self.input = a.clone();
-        let res = a.clone().mat_mul(&self.weights).add(&self.bias);
+        let res = a.clone().mat_mul(&self.weights).add_row_to_all_rows(&self.bias);
         self.pre_activation = res.clone();
 
         res.apply(|x| self.activation.forward(x))
