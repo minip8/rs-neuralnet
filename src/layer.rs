@@ -25,10 +25,10 @@ where
                 F::zero(),
                 F::sqrt(F::from(2).unwrap() / F::from(input_size).unwrap()),
             ),
-            // batch_size x input_size
+            // batch_size x output_size
             bias: Matrix::zeros(0, 0),
 
-            // 1 x output_size
+            // batch_size x input_size
             input: Matrix::zeros(1, output_size),
 
             // batch_size x output_size
