@@ -44,7 +44,7 @@ where
 {
     /// a is a batch_size x input_size matrix
     /// a x weights is a batch_size x output_size matrix
-    fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
+    pub fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
         self.input = a.clone();
         let res = a
             .clone()
@@ -66,7 +66,7 @@ where
     ///                                                             = 1     * da/dz * dc/da
     ///
     /// Returns (dc w.r.t previous layer's activation, dc w.r.t this layer's weights)
-    fn backward(&mut self, dc_da: Matrix<F>, lr: F) -> Matrix<F> {
+    pub fn backward(&mut self, dc_da: Matrix<F>, lr: F) -> Matrix<F> {
         let batch_size = self.input.rows();
         let batch_size_inv = F::one() / F::from(batch_size).unwrap();
         let inputs_transposed = self.input.clone().transpose();
