@@ -66,7 +66,7 @@ where
     ///                                                             = 1     * da/dz * dc/da
     ///
     /// Returns (dc w.r.t previous layer's activation, dc w.r.t this layer's weights)
-    fn backward(&mut self, dc_da: Matrix<F>) -> Matrix<F> {
+    fn backward(&mut self, dc_da: Matrix<F>, lr: F) -> Matrix<F> {
         let batch_size = self.input.rows();
         let batch_size_inv = F::one() / F::from(batch_size).unwrap();
         let inputs_transposed = self.input.clone().transpose();
@@ -83,8 +83,8 @@ where
 
         let dc_da_prev = delta.mat_mul(&self.weights.transpose());
 
-        self.weights.sub_(&dc_dw);
-        self.bias.sub_(&dc_db);
+        self.weights.sub_(&dc_dw.mul(lr));
+        self.bias.sub_(&dc_db.mul(lr));
 
         dc_da_prev
     }
