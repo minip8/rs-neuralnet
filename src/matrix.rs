@@ -7,6 +7,10 @@ use rand::{
 };
 use rand_distr::{Distribution, Normal, StandardNormal};
 
+use row_iter::RowIter;
+
+pub mod row_iter;
+
 thread_local! {
     static RNG: RefCell<StdRng> = RefCell::new(StdRng::try_from_rng(&mut SysRng).unwrap());
 }
@@ -420,6 +424,10 @@ impl<F: Float> Matrix<F> {
 impl<T> Matrix<T> {
     pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {
         self.data.iter()
+    }
+
+    pub fn row_iter(&self) -> RowIter<'_, T> {
+        RowIter::new(self)
     }
 }
 
