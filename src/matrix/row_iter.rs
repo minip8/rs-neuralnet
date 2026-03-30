@@ -1,5 +1,6 @@
 use super::Matrix;
 
+#[derive(Clone)]
 pub struct RowIter<'a, T> {
     data: &'a [T],
     rows: usize,
@@ -68,5 +69,17 @@ mod tests {
 
         assert_eq!(rows.len(), 3);
         assert!(rows.iter().all(|row| row.is_empty()));
+    }
+
+    #[test]
+    fn row_iter_can_cycle() {
+        let m = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
+        let rows: Vec<&[i32]> = m.row_iter().cycle().take(5).collect();
+
+        assert_eq!(rows[0], &[1, 2]);
+        assert_eq!(rows[1], &[3, 4]);
+        assert_eq!(rows[2], &[1, 2]);
+        assert_eq!(rows[3], &[3, 4]);
+        assert_eq!(rows[4], &[1, 2]);
     }
 }
