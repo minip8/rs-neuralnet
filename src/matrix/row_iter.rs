@@ -1,4 +1,5 @@
 use super::Matrix;
+use std::marker::PhantomData;
 
 #[derive(Clone)]
 pub struct RowIter<'a, T> {
@@ -8,6 +9,19 @@ pub struct RowIter<'a, T> {
     next_row: usize,
 }
 
+pub struct RowIterMut<'a, T> {
+    inner: RowIterMutInner<'a, T>,
+}
+
+enum RowIterMutInner<'a, T> {
+    Chunks(std::slice::ChunksExactMut<'a, T>),
+    ZeroCols {
+        ptr: *mut T,
+        remaining_rows: usize,
+        _marker: PhantomData<&'a mut T>,
+    },
+}
+
 impl<'a, T> RowIter<'a, T> {
     pub fn new(matrix: &'a Matrix<T>) -> Self {
         Self {
@@ -15,6 +29,28 @@ impl<'a, T> RowIter<'a, T> {
             cols: matrix.cols(),
             next_row: 0,
             rows: matrix.rows(),
+        }
+    }
+}
+
+impl<'a, T> RowIterMut<'a, T> {
+    pub fn new(matrix: &'a mut Matrix<T>) -> Self {
+        let rows = matrix.rows();
+        let cols = matrix.cols();
+
+        if cols == 0 {
+            let ptr = matrix.data.as_mut_ptr();
+            return Self {
+                inner: RowIterMutInner::ZeroCols {
+                    ptr,
+                    remaining_rows: rows,
+                    _marker: PhantomData,
+                },
+            };
+        }
+
+        Self {
+            inner: RowIterMutInner::Chunks(matrix.data.as_mut_slice().chunks_exact_mut(cols)),
         }
     }
 }
@@ -47,6 +83,40 @@ impl<'a, T> Iterator for RowIter<'a, T> {
 }
 
 impl<'a, T> ExactSizeIterator for RowIter<'a, T> {}
+
+impl<'a, T> Iterator for RowIterMut<'a, T> {
+    type Item = &'a mut [T];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match &mut self.inner {
+            RowIterMutInner::Chunks(iter) => iter.next(),
+            RowIterMutInner::ZeroCols {
+                ptr,
+                remaining_rows,
+                ..
+            } => {
+                if *remaining_rows == 0 {
+                    return None;
+                }
+
+                *remaining_rows -= 1;
+                // Safe because the slice is always empty, so it never aliases data.
+                Some(unsafe { std::slice::from_raw_parts_mut(*ptr, 0) })
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match &self.inner {
+            RowIterMutInner::Chunks(iter) => iter.size_hint(),
+            RowIterMutInner::ZeroCols { remaining_rows, .. } => {
+                (*remaining_rows, Some(*remaining_rows))
+            }
+        }
+    }
+}
+
+impl<'a, T> ExactSizeIterator for RowIterMut<'a, T> {}
 
 #[cfg(test)]
 mod tests {
@@ -81,5 +151,16 @@ mod tests {
         assert_eq!(rows[2], &[1, 2]);
         assert_eq!(rows[3], &[3, 4]);
         assert_eq!(rows[4], &[1, 2]);
+    }
+
+    #[test]
+    fn row_iter_mut_yields_mutable_rows() {
+        let mut m = Matrix::from_vec2d(vec![vec![1, 2], vec![3, 4]]);
+
+        for row in m.row_iter_mut() {
+            row[0] *= 10;
+        }
+
+        assert_eq!(m.data(), &vec![10, 2, 30, 4]);
     }
 }
