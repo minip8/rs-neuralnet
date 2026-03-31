@@ -9,6 +9,8 @@ use rand_distr::{Distribution, Normal, StandardNormal};
 
 use row_iter::RowIter;
 
+use crate::matrix::row_iter::RowIterMut;
+
 pub mod row_iter;
 
 thread_local! {
@@ -428,6 +430,10 @@ impl<T> Matrix<T> {
 
     pub fn row_iter(&self) -> RowIter<'_, T> {
         RowIter::new(self)
+    }
+
+    pub fn row_iter_mut(&mut self) -> RowIterMut<'_, T> {
+        RowIterMut::new(self)
     }
 }
 
