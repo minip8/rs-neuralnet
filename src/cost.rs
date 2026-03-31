@@ -2,19 +2,20 @@ use crate::matrix::Matrix;
 use num_traits::Float;
 pub mod functions;
 
-pub struct Cost<T, F1, F2> {
-    forward: F1,
-    backward: F2,
+pub struct Cost<T> {
+    forward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
+    backward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<F, F1, F2> Cost<F, F1, F2>
+impl<F> Cost<F>
 where
     F: Float,
-    F1: Fn(&Matrix<F>, &Matrix<F>) -> Matrix<F>,
-    F2: Fn(&Matrix<F>, &Matrix<F>) -> Matrix<F>,
 {
-    pub fn new(forward: F1, backward: F2) -> Self {
+    pub fn new(
+        forward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
+        backward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
+    ) -> Self {
         Self {
             forward,
             backward,
@@ -23,7 +24,7 @@ where
     }
 }
 
-impl<F> Cost<F, fn(Matrix<F>, &Matrix<F>) -> Matrix<F>, fn(Matrix<F>, &Matrix<F>) -> Matrix<F>>
+impl<F> Cost<F>
 where
     F: Float,
 {
