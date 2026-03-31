@@ -41,6 +41,15 @@ pub fn mses<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns a batch_size x output_size Matrix of d(MSE)/dx: 2 * (x - y) / output_size
+pub fn mse_forward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+    let output_size = F::from(xs.cols()).unwrap();
+
+    apply_elementwise(xs, y, |xi, yi| (xi - yi).powi(2) / output_size)
+}
+
+/// xs: batch_size x output_size
+/// y : 1 x output_size
+/// Returns a batch_size x output_size Matrix of d(MSE)/dx: 2 * (x - y) / output_size
 pub fn mse_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
     let two = F::from(2).unwrap();
     let output_size = F::from(xs.cols()).unwrap();
