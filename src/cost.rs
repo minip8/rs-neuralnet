@@ -22,12 +22,7 @@ where
             _marker: std::marker::PhantomData,
         }
     }
-}
 
-impl<F> Cost<F>
-where
-    F: Float,
-{
     pub fn mse() -> Self {
         Self {
             forward: functions::mse_forward,
