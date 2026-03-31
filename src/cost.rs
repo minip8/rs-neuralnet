@@ -31,3 +31,13 @@ where
         }
     }
 }
+
+impl<T> Cost<T> {
+    pub fn forward(&self) -> fn(Matrix<T>, &Matrix<T>) -> Matrix<T> {
+        self.forward
+    }
+
+    pub fn backward(&self) -> fn(Matrix<T>, &Matrix<T>) -> Matrix<T> {
+        self.backward
+    }
+}
