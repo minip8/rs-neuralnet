@@ -23,14 +23,15 @@ where
     }
 }
 
-impl<F> Cost<F, fn(&Matrix<F>, &Matrix<F>) -> Matrix<F>, fn(&Matrix<F>, &Matrix<F>) -> Matrix<F>>
+impl<F> Cost<F, fn(Matrix<F>, &Matrix<F>) -> Matrix<F>, fn(Matrix<F>, &Matrix<F>) -> Matrix<F>>
 where
     F: Float,
 {
     pub fn mse() -> Self {
-        Self::new(
-            Matrix::mses,
-            |_, _| todo!(), // replace with real backward fn when available
-        )
+        Self {
+            forward: functions::mse_forward,
+            backward: functions::mse_backward,
+            _marker: std::marker::PhantomData,
+        }
     }
 }
