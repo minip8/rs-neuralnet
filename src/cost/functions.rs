@@ -2,6 +2,22 @@ use num_traits::Float;
 
 use crate::matrix::Matrix;
 
+fn apply_elementwise<T, F>(mut xs: Matrix<T>, y: &Matrix<T>, f: F) -> Matrix<T>
+where
+    T: Copy,
+    F: Fn(T, T) -> T,
+{
+    debug_assert_eq!(y.rows(), 1);
+    debug_assert_eq!(xs.cols(), y.cols());
+
+    xs.row_iter_mut().for_each(|x| {
+        x.iter_mut()
+            .zip(y.iter())
+            .for_each(|(xi, &yi)| *xi = f(*xi, yi))
+    });
+    xs
+}
+
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns a 1 x batch_size row vector of the MSEs of all individual batches
@@ -25,19 +41,11 @@ pub fn mses<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns a batch_size x output_size Matrix of d(MSE)/dx: 2 * (x - y) / output_size
-pub fn mse_backward<F: Float>(mut xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
-    debug_assert_eq!(y.rows(), 1);
-    debug_assert_eq!(xs.cols(), y.cols());
-
+pub fn mse_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
     let two = F::from(2).unwrap();
     let output_size = F::from(xs.cols()).unwrap();
 
-    xs.row_iter_mut().for_each(|x| {
-        x.iter_mut()
-            .zip(y.iter())
-            .for_each(|(xi, &yi)| *xi = two * (*xi - yi) / output_size)
-    });
-    xs
+    apply_elementwise(xs, y, |xi, yi| two * (xi - yi) / output_size)
 }
 
 #[cfg(test)]
@@ -92,5 +100,37 @@ mod tests {
         assert_close(grad.get(0, 0), 2.0 / 3.0);
         assert_close(grad.get(0, 1), 4.0 / 3.0);
         assert_close(grad.get(0, 2), 2.0);
+    }
+
+    #[test]
+    fn apply_elementwise_applies_target_row_to_each_batch_row() {
+        let xs = Matrix::from_vec2d(vec![vec![1_i32, 2, 3], vec![10, 20, 30]]);
+        let y = Matrix::from_vec2d(vec![vec![1_i32, 10, 100]]);
+
+        let result = apply_elementwise(xs, &y, |xi, yi| xi + yi);
+
+        assert_eq!(result.rows(), 2);
+        assert_eq!(result.cols(), 3);
+        assert_eq!(result.get(0, 0), 2);
+        assert_eq!(result.get(0, 1), 12);
+        assert_eq!(result.get(0, 2), 103);
+        assert_eq!(result.get(1, 0), 11);
+        assert_eq!(result.get(1, 1), 30);
+        assert_eq!(result.get(1, 2), 130);
+    }
+
+    #[test]
+    fn apply_elementwise_supports_non_commutative_operation() {
+        let xs = Matrix::from_vec2d(vec![vec![5_i32, 7, 11], vec![13, 17, 19]]);
+        let y = Matrix::from_vec2d(vec![vec![1_i32, 2, 3]]);
+
+        let result = apply_elementwise(xs, &y, |xi, yi| xi - 2 * yi);
+
+        assert_eq!(result.get(0, 0), 3);
+        assert_eq!(result.get(0, 1), 3);
+        assert_eq!(result.get(0, 2), 5);
+        assert_eq!(result.get(1, 0), 11);
+        assert_eq!(result.get(1, 1), 13);
+        assert_eq!(result.get(1, 2), 13);
     }
 }
