@@ -24,7 +24,9 @@ where
     }
 
     pub fn backward(&mut self, mut dc_da: Matrix<F>) -> Matrix<F> {
-        for i in self.layers.len() - 1..0 {
+        debug_assert!(self.layers.len() >= 1);
+
+        for i in (0..self.layers.len() - 1).rev() {
             dc_da = self.layers[i].backward(dc_da, self.lr);
         }
         dc_da
