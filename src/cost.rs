@@ -5,6 +5,7 @@ pub mod functions;
 pub struct Cost<T> {
     forward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
     backward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
+    loss: fn(&Matrix<T>, &Matrix<T>) -> T,
     _marker: std::marker::PhantomData<T>,
 }
 
@@ -15,10 +16,12 @@ where
     pub fn new(
         forward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
         backward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
+        loss: fn(&Matrix<F>, &Matrix<F>) -> F,
     ) -> Self {
         Self {
             forward,
             backward,
+            loss,
             _marker: std::marker::PhantomData,
         }
     }
@@ -27,17 +30,25 @@ where
         Self {
             forward: functions::mse_forward,
             backward: functions::mse_backward,
+            loss: functions::mse,
             _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl<T> Cost<T> {
-    pub fn forward(&self) -> fn(Matrix<T>, &Matrix<T>) -> Matrix<T> {
+impl<F> Cost<F>
+where
+    F: Float,
+{
+    pub fn forward(&self) -> fn(Matrix<F>, &Matrix<F>) -> Matrix<F> {
         self.forward
     }
 
-    pub fn backward(&self) -> fn(Matrix<T>, &Matrix<T>) -> Matrix<T> {
+    pub fn backward(&self) -> fn(Matrix<F>, &Matrix<F>) -> Matrix<F> {
         self.backward
+    }
+
+    pub fn loss(&self) -> fn(&Matrix<F>, &Matrix<F>) -> F {
+        self.loss
     }
 }
