@@ -33,8 +33,8 @@ where
     pub fn step(&mut self, x: Matrix<F>, y: &Matrix<F>) -> F {
         let output = self.forward(x);
         let loss = self.cost.loss()(&output, y);
-        let mses = self.cost.forward()(output, y);
-        self.backward(mses);
+        let mses_backward = self.cost.backward()(output, y);
+        self.backward(mses_backward);
         loss
     }
 }
