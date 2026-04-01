@@ -20,6 +20,24 @@ where
 
 /// xs: batch_size x output_size
 /// y : 1 x output_size
+/// Returns the average of the MSEs of each individual batch
+pub fn mse<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> F {
+    debug_assert_eq!(y.rows(), 1);
+    debug_assert_eq!(xs.cols(), y.cols());
+
+    xs.row_iter()
+        .map(|x| {
+            x.iter()
+                .zip(y.iter())
+                .fold(F::zero(), |acc, (&xi, &yi)| acc + (xi - yi).powi(2))
+        })
+        .fold(F::zero(), |acc, x| acc + x)
+        .div(F::from(xs.cols()).unwrap())
+        .div(F::from(xs.rows()).unwrap())
+}
+
+/// xs: batch_size x output_size
+/// y : 1 x output_size
 /// Returns a 1 x batch_size row vector of the MSEs of all individual batches
 pub fn mses<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
     debug_assert_eq!(y.rows(), 1);
