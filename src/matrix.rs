@@ -300,7 +300,7 @@ impl<F: Float> Matrix<F> {
 
     pub fn mul_row_(&mut self, row: usize, scale: F) -> &mut Self {
         let start = row * self.cols;
-        let end = row * (self.cols + 1);
+        let end = start + self.cols;
         for i in start..end {
             self.data[i] = self.data[i] * scale;
         }
