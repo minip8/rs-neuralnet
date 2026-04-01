@@ -349,7 +349,7 @@ impl<F: Float> Matrix<F> {
         for i in 0..self.rows {
             data[i] = {
                 let start = i * self.cols;
-                let end = i * (self.cols + 1);
+                let end = start + self.cols;
                 self.data[start..end]
                     .iter()
                     .zip(other.data.iter())
