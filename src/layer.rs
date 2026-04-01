@@ -77,7 +77,7 @@ where
 
         let delta = dc_da.clone().hadamard(&da_dz);
 
-        let dc_dw = inputs_transposed.mat_mul(&delta);
+        let dc_dw = inputs_transposed.mat_mul(&delta).mul(batch_size_inv);
 
         let dc_db = delta.clone().col_sum().mul(batch_size_inv);
 
