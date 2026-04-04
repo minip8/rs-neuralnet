@@ -24,3 +24,11 @@ pub fn tanh<F: Float>(x: F) -> F {
 pub fn tanh_backward<F: Float>(x: F) -> F {
     F::one() - x.tanh().powi(2)
 }
+
+pub fn linear<F: Float>(x: F) -> F {
+    x
+}
+
+pub fn linear_backward<F: Float>(_: F) -> F {
+    F::one()
+}

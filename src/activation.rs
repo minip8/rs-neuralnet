@@ -39,6 +39,10 @@ where
         Activation::new(functions::tanh, functions::tanh_backward)
     }
 
+    pub fn linear() -> Self {
+        Activation::new(functions::linear, functions::linear_backward)
+    }
+
     pub fn forward(&self, x: T) -> T {
         (self.forward)(x)
     }
