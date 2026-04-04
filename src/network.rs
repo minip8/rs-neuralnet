@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use num_traits::Float;
 
 use crate::{cost::Cost, layer::Layer, matrix::Matrix};
@@ -10,7 +12,7 @@ pub struct Network<T> {
 
 impl<F> Network<F>
 where
-    F: Float,
+    F: Float + Display,
 {
     pub fn new(layers: Vec<Layer<F>>, cost: Cost<F>, lr: F) -> Self {
         Self { layers, cost, lr }
@@ -99,8 +101,9 @@ mod tests {
         for _ in 0..6 {
             let mut network = Network::new(
                 vec![
-                    Layer::<f64>::normal_relu(1, 8),
-                    Layer::<f64>::normal_relu(8, 1),
+                    Layer::<f64>::normal_relu(1, 16),
+                    Layer::<f64>::normal_relu(16, 8),
+                    Layer::<f64>::normal(8, 1),
                 ],
                 Cost::mse(),
                 0.01,
@@ -147,18 +150,18 @@ mod tests {
         let mut learned_xor = false;
 
         // Retries reduce flakiness from unlucky random initializations.
-        for _ in 0..5 {
+        for _ in 0..1 {
             let mut network = Network::new(
                 vec![
                     Layer::<f64>::normal_relu(2, 16),
                     Layer::<f64>::normal_relu(16, 8),
-                    Layer::<f64>::normal_relu(8, 1),
+                    Layer::<f64>::normal(8, 1),
                 ],
                 Cost::mse(),
-                0.001,
+                0.01,
             );
 
-            for e in 0..10000 {
+            for e in 0..1000 {
                 let mut epoch_loss_sum = 0f64;
 
                 for (x, y) in train_samples.iter() {
