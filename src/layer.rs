@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use num_traits::Float;
 use rand_distr::{Distribution, StandardNormal};
 
@@ -8,7 +10,7 @@ pub struct Layer<T> {
     weights: Matrix<T>,
     bias: Matrix<T>,
     input: Matrix<T>,
-    pre_activation: Matrix<T>,
+    pub pre_activation: Matrix<T>,
     activation: Activation<T, fn(T) -> T, fn(T) -> T>,
 }
 
@@ -36,23 +38,44 @@ where
             activation: Activation::relu(),
         }
     }
+    pub fn normal(input_size: usize, output_size: usize) -> Self {
+        Self {
+            weights: Matrix::<F>::normal(
+                input_size,
+                output_size,
+                F::zero(),
+                F::sqrt(F::from(2).unwrap() / F::from(input_size).unwrap()),
+            ),
+            // 1 x output_size
+            bias: Matrix::zeros(1, output_size),
+
+            // batch_size x input_size
+            input: Matrix::zeros(0, 0),
+
+            // batch_size x output_size
+            pre_activation: Matrix::zeros(0, 0),
+            activation: Activation::linear(),
+        }
+    }
 }
 
 impl<F> Layer<F>
 where
-    F: Float,
+    F: Float + Display,
 {
     /// a is a batch_size x input_size matrix
     /// a x weights is a batch_size x output_size matrix
     pub fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
         self.input = a.clone();
-        let res = a
+        let mut res = a
             .clone()
             .mat_mul(&self.weights)
             .add_row_to_all_rows(&self.bias);
         self.pre_activation = res.clone();
 
-        res.apply(|x| self.activation.forward(x))
+        
+        res = res.apply(|x| self.activation.forward(x));
+        res
     }
 
     /// Let N be the number of neurons in the previous layer
