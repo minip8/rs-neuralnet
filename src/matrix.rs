@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, fmt::Display};
 
 use num_traits::Float;
 use rand::{
@@ -443,6 +443,20 @@ impl<T> IntoIterator for Matrix<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
+    }
+}
+
+impl<F: Float + Display> Display for Matrix<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\ndims: ({}, {})\n", self.rows, self.cols).unwrap();
+        for r in self.row_iter() {
+            for x in r {
+                write!(f, "{x:.2}, ").unwrap();
+            }
+            write!(f, "\n").unwrap();
+        }
+        write!(f, "\n").unwrap();
+        Ok(())
     }
 }
 #[cfg(test)]
