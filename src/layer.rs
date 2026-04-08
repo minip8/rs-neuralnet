@@ -19,7 +19,7 @@ where
     F: Float,
     StandardNormal: Distribution<F>,
 {
-    pub fn normal_relu(input_size: usize, output_size: usize) -> Self {
+    pub fn relu(input_size: usize, output_size: usize) -> Self {
         Self {
             weights: Matrix::<F>::normal(
                 input_size,
@@ -39,7 +39,7 @@ where
         }
     }
 
-    pub fn normal_linear(input_size: usize, output_size: usize) -> Self {
+    pub fn linear(input_size: usize, output_size: usize) -> Self {
         Self {
             weights: Matrix::<F>::normal(
                 input_size,

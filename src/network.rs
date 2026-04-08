@@ -54,8 +54,8 @@ mod tests {
     fn test_network_forward_output_shape() {
         let mut network = Network::new(
             vec![
-                Layer::<f64>::normal_relu(3, 4),
-                Layer::<f64>::normal_relu(4, 2),
+                Layer::<f64>::relu(3, 4),
+                Layer::<f64>::relu(4, 2),
             ],
             Cost::mse(),
             0.01,
@@ -72,8 +72,8 @@ mod tests {
     fn test_network_step_produces_finite_non_negative_loss() {
         let mut network = Network::new(
             vec![
-                Layer::<f64>::normal_relu(2, 3),
-                Layer::<f64>::normal_relu(3, 1),
+                Layer::<f64>::relu(2, 3),
+                Layer::<f64>::relu(3, 1),
             ],
             Cost::mse(),
             0.01,
@@ -101,9 +101,9 @@ mod tests {
         for _ in 0..6 {
             let mut network = Network::new(
                 vec![
-                    Layer::<f64>::normal_relu(1, 16),
-                    Layer::<f64>::normal_relu(16, 8),
-                    Layer::<f64>::normal(8, 1),
+                    Layer::<f64>::relu(1, 16),
+                    Layer::<f64>::relu(16, 8),
+                    Layer::<f64>::linear(8, 1),
                 ],
                 Cost::mse(),
                 0.01,
@@ -153,9 +153,9 @@ mod tests {
         for _ in 0..1 {
             let mut network = Network::new(
                 vec![
-                    Layer::<f64>::normal_relu(2, 16),
-                    Layer::<f64>::normal_relu(16, 8),
-                    Layer::<f64>::normal(8, 1),
+                    Layer::<f64>::relu(2, 16),
+                    Layer::<f64>::relu(16, 8),
+                    Layer::<f64>::linear(8, 1),
                 ],
                 Cost::mse(),
                 0.01,
