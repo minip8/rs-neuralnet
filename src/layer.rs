@@ -10,7 +10,7 @@ pub struct Layer<T> {
     weights: Matrix<T>,
     bias: Matrix<T>,
     input: Matrix<T>,
-    pub pre_activation: Matrix<T>,
+    pre_activation: Matrix<T>,
     activation: Activation<T, fn(T) -> T, fn(T) -> T>,
 }
 
@@ -38,7 +38,8 @@ where
             activation: Activation::relu(),
         }
     }
-    pub fn normal(input_size: usize, output_size: usize) -> Self {
+
+    pub fn normal_linear(input_size: usize, output_size: usize) -> Self {
         Self {
             weights: Matrix::<F>::normal(
                 input_size,
@@ -73,7 +74,6 @@ where
             .add_row_to_all_rows(&self.bias);
         self.pre_activation = res.clone();
 
-        
         res = res.apply(|x| self.activation.forward(x));
         res
     }
