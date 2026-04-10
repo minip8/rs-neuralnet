@@ -58,7 +58,7 @@ pub fn mses<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
 
 /// xs: batch_size x output_size
 /// y : 1 x output_size
-/// Returns a batch_size x output_size Matrix of d(MSE)/dx: 2 * (x - y) / output_size
+/// Returns a batch_size x output_size Matrix MSE: (x - y)^2 / output_size
 pub fn mse_forward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
     let output_size = F::from(xs.cols()).unwrap();
 
