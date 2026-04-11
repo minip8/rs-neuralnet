@@ -197,4 +197,77 @@ mod tests {
 
         assert!(learned_xor, "network failed to learn XOR behavior");
     }
+
+    #[test]
+    fn test_network_learns_xor_behavior_cross_entropy() {
+        let train_samples = [
+            (
+                Matrix::from_vec2d(vec![vec![-1.0, -1.0]]),
+                Matrix::from_vec2d(vec![vec![1.0, 0.0]]),
+            ),
+            (
+                Matrix::from_vec2d(vec![vec![-1.0, 1.0]]),
+                Matrix::from_vec2d(vec![vec![0.0, 1.0]]),
+            ),
+            (
+                Matrix::from_vec2d(vec![vec![1.0, -1.0]]),
+                Matrix::from_vec2d(vec![vec![0.0, 1.0]]),
+            ),
+            (
+                Matrix::from_vec2d(vec![vec![1.0, 1.0]]),
+                Matrix::from_vec2d(vec![vec![1.0, 0.0]]),
+            ),
+        ];
+
+        let mut learned_xor = false;
+
+        // Retries reduce flakiness from unlucky random initializations.
+        for _ in 0..1 {
+            let mut network = Network::new(
+                vec![
+                    Layer::<f64>::relu(2, 16),
+                    Layer::<f64>::relu(16, 8),
+                    Layer::<f64>::linear(8, 2),
+                ],
+                Cost::cross_entropy(),
+                0.01,
+            );
+
+            for e in 0..1000 {
+                let mut epoch_loss_sum = 0f64;
+
+                for (x, y) in train_samples.iter() {
+                    let loss = network.step(x.clone(), y);
+                    epoch_loss_sum += loss;
+                }
+
+                if e % 500 == 0 {
+                    let epoch_mean_loss = epoch_loss_sum / train_samples.len() as f64;
+                    println!("epoch {e}: mean_loss={epoch_mean_loss}");
+                }
+            }
+
+            let p00 = network
+                .forward(Matrix::from_vec2d(vec![vec![-1.0, -1.0]]))
+                .max();
+            let p01 = network
+                .forward(Matrix::from_vec2d(vec![vec![-1.0, 1.0]]))
+                .max();
+            let p10 = network
+                .forward(Matrix::from_vec2d(vec![vec![1.0, -1.0]]))
+                .max();
+            let p11 = network
+                .forward(Matrix::from_vec2d(vec![vec![1.0, 1.0]]))
+                .max();
+
+            println!("{p00:?} {p01:?} {p10:?} {p11:?}");
+
+            if p00.0 == 0 && p01.0 == 1 && p10.0 == 1 && p11.0 == 0 {
+                learned_xor = true;
+                break;
+            }
+        }
+
+        assert!(learned_xor, "network failed to learn XOR behavior");
+    }
 }
