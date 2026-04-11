@@ -92,8 +92,9 @@ pub fn cross_entropy_loss_forward<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Ma
     let data = xs
         .row_iter()
         .map(|r| {
-            let exp_sum = r.iter().fold(F::zero(), |acc, x| acc + x.exp());
-            let log_sum = exp_sum.ln();
+            let mx = *r.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+            let exp_sum_shift = r.iter().fold(F::zero(), |acc, &x| acc + (x - mx).exp());
+            let log_sum = mx + exp_sum_shift.ln();
 
             log_sum - r[y]
         })

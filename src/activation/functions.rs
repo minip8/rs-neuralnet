@@ -38,8 +38,9 @@ pub fn linear_backward<F: Float>(_: F) -> F {
 /// Applies softmax to every row independently
 pub fn softmax<F: Float>(mut m: Matrix<F>) -> Matrix<F> {
     m.row_iter_mut().for_each(|r| {
-        let s = r.iter().clone().fold(F::zero(), |acc, &x| acc + x.exp());
-        r.iter_mut().for_each(|x| *x = x.exp() / s);
+        let mx = *r.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let s = r.iter().fold(F::zero(), |acc, &x| acc + (x - mx).exp());
+        r.iter_mut().for_each(|x| *x = (*x - mx).exp() / s);
     });
     m
 }
