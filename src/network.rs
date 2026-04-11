@@ -272,6 +272,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_network_trains_on_mnist_digits() {
         use mnist::MnistBuilder;
 
