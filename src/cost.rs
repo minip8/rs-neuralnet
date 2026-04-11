@@ -27,12 +27,7 @@ where
     }
 
     pub fn mse() -> Self {
-        Self {
-            forward: functions::mses,
-            backward: functions::mse_backward,
-            loss: functions::mse,
-            _marker: std::marker::PhantomData,
-        }
+        Self::new(functions::mses, functions::mse_backward, functions::mse)
     }
 
     pub fn cross_entropy() -> Self {
