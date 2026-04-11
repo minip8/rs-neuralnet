@@ -3,7 +3,7 @@ use num_traits::Float;
 pub mod functions;
 
 pub struct Cost<T> {
-    forward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
+    forward: fn(&Matrix<T>, &Matrix<T>) -> Matrix<T>,
     backward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
     loss: fn(&Matrix<T>, &Matrix<T>) -> T,
     _marker: std::marker::PhantomData<T>,
@@ -14,7 +14,7 @@ where
     F: Float,
 {
     pub fn new(
-        forward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
+        forward: fn(&Matrix<F>, &Matrix<F>) -> Matrix<F>,
         backward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
         loss: fn(&Matrix<F>, &Matrix<F>) -> F,
     ) -> Self {
@@ -28,7 +28,7 @@ where
 
     pub fn mse() -> Self {
         Self {
-            forward: functions::mse_forward,
+            forward: functions::mses,
             backward: functions::mse_backward,
             loss: functions::mse,
             _marker: std::marker::PhantomData,
@@ -40,7 +40,7 @@ impl<F> Cost<F>
 where
     F: Float,
 {
-    pub fn forward(&self) -> fn(Matrix<F>, &Matrix<F>) -> Matrix<F> {
+    pub fn forward(&self) -> fn(&Matrix<F>, &Matrix<F>) -> Matrix<F> {
         self.forward
     }
 
