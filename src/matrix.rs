@@ -421,6 +421,14 @@ impl<F: Float> Matrix<F> {
         self.col_sum_();
         self
     }
+
+    pub fn max(&self) -> (usize, F) {
+        self.iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+            .map(|(i, a)| (i, *a))
+            .unwrap()
+    }
 }
 
 impl<T> Matrix<T> {
