@@ -82,12 +82,7 @@ pub fn cross_entropy_loss_forward<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Ma
     debug_assert_eq!(y.rows(), 1);
     debug_assert_eq!(xs.cols(), y.cols());
 
-    let y = y
-        .iter()
-        .enumerate()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-        .map(|(i, _)| i)
-        .unwrap();
+    let y = y.max().0;
 
     let data = xs
         .row_iter()
@@ -112,12 +107,7 @@ pub fn cross_entropy_loss_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Ma
     debug_assert_eq!(xs.cols(), y.cols());
 
     let mut xs = softmax(xs);
-    let y = y
-        .iter()
-        .enumerate()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-        .map(|(i, _)| i)
-        .unwrap();
+    let y = y.max().0;
 
     xs.row_iter_mut().for_each(|r| r[y] = r[y] - F::one());
     xs
