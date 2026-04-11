@@ -2,8 +2,7 @@ use num_traits::Float;
 
 pub mod functions;
 
-pub struct Activation<T, F1, F2>
-{
+pub struct Activation<T, F1, F2> {
     forward: F1,
     backward: F2,
     _marker: std::marker::PhantomData<T>,

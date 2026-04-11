@@ -53,10 +53,7 @@ mod tests {
     #[test]
     fn test_network_forward_output_shape() {
         let mut network = Network::new(
-            vec![
-                Layer::<f64>::relu(3, 4),
-                Layer::<f64>::relu(4, 2),
-            ],
+            vec![Layer::<f64>::relu(3, 4), Layer::<f64>::relu(4, 2)],
             Cost::mse(),
             0.01,
         );
@@ -71,10 +68,7 @@ mod tests {
     #[test]
     fn test_network_step_produces_finite_non_negative_loss() {
         let mut network = Network::new(
-            vec![
-                Layer::<f64>::relu(2, 3),
-                Layer::<f64>::relu(3, 1),
-            ],
+            vec![Layer::<f64>::relu(2, 3), Layer::<f64>::relu(3, 1)],
             Cost::mse(),
             0.01,
         );
