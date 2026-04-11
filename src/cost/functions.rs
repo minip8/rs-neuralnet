@@ -216,4 +216,50 @@ mod tests {
         assert_eq!(result.get(1, 1), 13);
         assert_eq!(result.get(1, 2), 13);
     }
+
+    #[test]
+    fn cross_entropy_forward_matches_known_logsumexp_form() {
+        let xs = Matrix::from_vec2d(vec![vec![2.0_f64, 1.0, 0.0], vec![0.0, 0.0, 0.0]]);
+        let y = Matrix::from_vec2d(vec![vec![1.0_f64, 0.0, 0.0]]);
+
+        let losses = cross_entropy_loss_forward(&xs, &y);
+
+        let expected_row0 = (2.0_f64.exp() + 1.0_f64.exp() + 0.0_f64.exp()).ln() - 2.0;
+        let expected_row1 = (0.0_f64.exp() + 0.0_f64.exp() + 0.0_f64.exp()).ln() - 0.0;
+
+        assert_eq!(losses.rows(), 1);
+        assert_eq!(losses.cols(), 2);
+        assert_close(losses.get(0, 0), expected_row0);
+        assert_close(losses.get(0, 1), expected_row1);
+    }
+
+    #[test]
+    fn cross_entropy_loss_is_mean_over_batch_rows() {
+        let xs = Matrix::from_vec2d(vec![vec![2.0_f64, 1.0, 0.0], vec![0.0, 0.0, 0.0]]);
+        let y = Matrix::from_vec2d(vec![vec![1.0_f64, 0.0, 0.0]]);
+
+        let losses = cross_entropy_loss_forward(&xs, &y);
+        let manual_mean = (losses.get(0, 0) + losses.get(0, 1)) / 2.0;
+
+        assert_close(cross_entropy_loss(&xs, &y), manual_mean);
+    }
+
+    #[test]
+    fn cross_entropy_backward_matches_softmax_minus_one_hot() {
+        let xs = Matrix::from_vec2d(vec![vec![2.0_f64, 1.0, 0.0], vec![0.0, 0.0, 0.0]]);
+        let y = Matrix::from_vec2d(vec![vec![0.0_f64, 1.0, 0.0]]);
+
+        let grad = cross_entropy_loss_backward(xs.clone(), &y);
+        let mut expected = softmax(xs);
+        expected.row_iter_mut().for_each(|r| r[1] = r[1] - 1.0);
+
+        assert_eq!(grad.rows(), expected.rows());
+        assert_eq!(grad.cols(), expected.cols());
+
+        for i in 0..grad.rows() {
+            for j in 0..grad.cols() {
+                assert_close(grad.get(i, j), expected.get(i, j));
+            }
+        }
+    }
 }
