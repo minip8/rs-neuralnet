@@ -1,6 +1,6 @@
 use num_traits::Float;
 
-use crate::matrix::Matrix;
+use crate::{activation::functions::softmax, matrix::Matrix};
 
 fn apply_elementwise<T, F>(mut xs: Matrix<T>, y: &Matrix<T>, f: F) -> Matrix<T>
 where
@@ -73,6 +73,61 @@ pub fn mse_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
     let output_size = F::from(xs.cols()).unwrap();
 
     apply_elementwise(xs, y, |xi, yi| two * (xi - yi) / output_size)
+}
+
+/// xs: batch_size x output_size
+/// y: 1 x output_size (1-hot vector)
+/// Returns a 1 x batch_size row vector
+pub fn cross_entropy_loss_forward<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+    debug_assert_eq!(y.rows(), 1);
+    debug_assert_eq!(xs.cols(), y.cols());
+
+    let y = y
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(i, _)| i)
+        .unwrap();
+
+    let data = xs
+        .row_iter()
+        .map(|r| {
+            let exp_sum = r.iter().fold(F::zero(), |acc, x| acc + x.exp());
+            let log_sum = exp_sum.ln();
+
+            log_sum - r[y]
+        })
+        .collect::<Vec<_>>();
+
+    Matrix::from_vec1d(1, xs.rows(), data)
+}
+
+/// xs: batch_size x output_size
+/// y: 1 x output_size (1-hot vector)
+/// Applies softmax and then computes d(cross entropy loss)/dz for each batch
+/// Returns a batch_size x output_size row vector
+pub fn cross_entropy_loss_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+    debug_assert_eq!(y.rows(), 1);
+    debug_assert_eq!(xs.cols(), y.cols());
+
+    let mut xs = softmax(xs);
+    let y = y
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(i, _)| i)
+        .unwrap();
+
+    xs.row_iter_mut().for_each(|r| r[y] = r[y] - F::one());
+    xs
+}
+
+/// Returns the mean cross entropy loss across all batches
+pub fn cross_entropy_loss<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> F {
+    cross_entropy_loss_forward(xs, y)
+        .iter()
+        .fold(F::zero(), |acc, &x| acc + x)
+        .div(F::from(xs.rows()).unwrap())
 }
 
 #[cfg(test)]

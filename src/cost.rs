@@ -34,6 +34,14 @@ where
             _marker: std::marker::PhantomData,
         }
     }
+
+    pub fn cross_entropy() -> Self {
+        Self::new(
+            functions::cross_entropy_loss_forward,
+            functions::cross_entropy_loss_backward,
+            functions::cross_entropy_loss,
+        )
+    }
 }
 
 impl<F> Cost<F>
