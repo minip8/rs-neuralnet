@@ -11,6 +11,9 @@ use row_iter::RowIter;
 
 use crate::matrix::row_iter::RowIterMut;
 
+pub mod cpu;
+pub mod cuda;
+pub mod ops;
 pub mod row_iter;
 
 thread_local! {
@@ -437,11 +440,11 @@ impl<T> Matrix<T> {
     }
 
     pub fn row_iter(&self) -> RowIter<'_, T> {
-        RowIter::new(self)
+        RowIter::new(&self.data, self.rows, self.cols)
     }
 
     pub fn row_iter_mut(&mut self) -> RowIterMut<'_, T> {
-        RowIterMut::new(self)
+        RowIterMut::new(&self.data, self.rows, self.cols)
     }
 }
 

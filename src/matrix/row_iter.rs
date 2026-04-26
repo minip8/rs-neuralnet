@@ -1,4 +1,3 @@
-use super::Matrix;
 use std::marker::PhantomData;
 
 #[derive(Clone)]
@@ -23,23 +22,20 @@ enum RowIterMutInner<'a, T> {
 }
 
 impl<'a, T> RowIter<'a, T> {
-    pub fn new(matrix: &'a Matrix<T>) -> Self {
+    pub fn new(data: &'a [T], rows: usize, cols: usize) -> Self {
         Self {
-            data: matrix.data(),
-            cols: matrix.cols(),
+            data,
+            cols,
+            rows,
             next_row: 0,
-            rows: matrix.rows(),
         }
     }
 }
 
 impl<'a, T> RowIterMut<'a, T> {
-    pub fn new(matrix: &'a mut Matrix<T>) -> Self {
-        let rows = matrix.rows();
-        let cols = matrix.cols();
-
+    pub fn new(data: &'a [T], rows: usize, cols: usize) -> Self {
         if cols == 0 {
-            let ptr = matrix.data.as_mut_ptr();
+            let ptr = data.as_mut_ptr();
             return Self {
                 inner: RowIterMutInner::ZeroCols {
                     ptr,
@@ -50,7 +46,7 @@ impl<'a, T> RowIterMut<'a, T> {
         }
 
         Self {
-            inner: RowIterMutInner::Chunks(matrix.data.as_mut_slice().chunks_exact_mut(cols)),
+            inner: RowIterMutInner::Chunks(data.as_mut_slice().chunks_exact_mut(cols)),
         }
     }
 }
