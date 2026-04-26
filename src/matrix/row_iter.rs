@@ -33,7 +33,7 @@ impl<'a, T> RowIter<'a, T> {
 }
 
 impl<'a, T> RowIterMut<'a, T> {
-    pub fn new(data: &'a [T], rows: usize, cols: usize) -> Self {
+    pub fn new(data: &'a mut [T], rows: usize, cols: usize) -> Self {
         if cols == 0 {
             let ptr = data.as_mut_ptr();
             return Self {
@@ -46,7 +46,7 @@ impl<'a, T> RowIterMut<'a, T> {
         }
 
         Self {
-            inner: RowIterMutInner::Chunks(data.as_mut_slice().chunks_exact_mut(cols)),
+            inner: RowIterMutInner::Chunks(data.chunks_exact_mut(cols)),
         }
     }
 }

@@ -444,7 +444,7 @@ impl<T> Matrix<T> {
     }
 
     pub fn row_iter_mut(&mut self) -> RowIterMut<'_, T> {
-        RowIterMut::new(&self.data, self.rows, self.cols)
+        RowIterMut::new(self.data.as_mut(), self.rows, self.cols)
     }
 }
 
