@@ -1,5 +1,5 @@
 use mnist::MnistBuilder;
-use rs_neuralnet::{cost::Cost, layer::Layer, matrix::Matrix, network::Network};
+use rs_neuralnet::{cost::Cost, layer::Layer, matrix::{Matrix, cpu::Cpu}, network::Network};
 
 fn main() {
     let required_files = [
@@ -9,7 +9,9 @@ fn main() {
         "data/t10k-labels-idx1-ubyte",
     ];
 
-    let all_data_files_available = required_files.iter().all(|path| std::fs::metadata(path).is_ok());
+    let all_data_files_available = required_files
+        .iter()
+        .all(|path| std::fs::metadata(path).is_ok());
 
     if !all_data_files_available {
         println!("MNIST data files not found in ./data.");
@@ -36,7 +38,8 @@ fn main() {
     println!("Loaded {} MNIST training samples", train_labels.len());
     println!("Loaded {} MNIST test samples", test_labels.len());
 
-    let normalized_train_images: Vec<f64> = train_images.iter().map(|&x| x as f64 / 255.0).collect();
+    let normalized_train_images: Vec<f64> =
+        train_images.iter().map(|&x| x as f64 / 255.0).collect();
     let normalized_test_images: Vec<f64> = test_images.iter().map(|&x| x as f64 / 255.0).collect();
 
     let mut training_samples = Vec::new();
@@ -66,9 +69,9 @@ fn main() {
 
     let mut network = Network::new(
         vec![
-            Layer::<f64>::relu(784, 128),
-            Layer::<f64>::relu(128, 64),
-            Layer::<f64>::linear(64, 10),
+            Layer::<f64, Cpu>::relu(784, 128),
+            Layer::<f64, Cpu>::relu(128, 64),
+            Layer::<f64, Cpu>::linear(64, 10),
         ],
         Cost::cross_entropy(),
         0.01,
