@@ -2,30 +2,30 @@ use std::fmt::Display;
 
 use num_traits::Float;
 
-use crate::{cost::Cost, layer::Layer, matrix::Matrix};
+use crate::{cost::Cost, device::Device, layer::Layer, matrix::Matrix};
 
-pub struct Network<T> {
-    layers: Vec<Layer<T>>,
-    cost: Cost<T>,
+pub struct Network<T, D: Device<T>> {
+    layers: Vec<Layer<T, D>>,
+    cost: Cost<T, D>,
     lr: T,
 }
 
-impl<F> Network<F>
+impl<F, D: Device<F>> Network<F, D>
 where
     F: Float + Display,
 {
-    pub fn new(layers: Vec<Layer<F>>, cost: Cost<F>, lr: F) -> Self {
+    pub fn new(layers: Vec<Layer<F, D>>, cost: Cost<F, D>, lr: F) -> Self {
         Self { layers, cost, lr }
     }
 
-    pub fn forward(&mut self, mut input: Matrix<F>) -> Matrix<F> {
+    pub fn forward(&mut self, mut input: Matrix<F, D>) -> Matrix<F, D> {
         for i in 0..self.layers.len() {
             input = self.layers[i].forward(&input);
         }
         input
     }
 
-    pub fn backward(&mut self, mut dc_da: Matrix<F>) -> Matrix<F> {
+    pub fn backward(&mut self, mut dc_da: Matrix<F, D>) -> Matrix<F, D> {
         debug_assert!(self.layers.len() >= 1);
 
         for i in (0..self.layers.len()).rev() {
@@ -34,7 +34,7 @@ where
         dc_da
     }
 
-    pub fn step(&mut self, x: Matrix<F>, y: &Matrix<F>) -> F {
+    pub fn step(&mut self, x: Matrix<F, D>, y: &Matrix<F, D>) -> F {
         let output = self.forward(x);
         let loss = self.cost.loss()(&output, y);
         let cost_backward = self.cost.backward()(output, y);
@@ -48,12 +48,12 @@ mod tests {
     use num_traits::abs;
 
     use super::*;
-    use crate::{cost::Cost, layer::Layer, matrix::Matrix};
+    use crate::{cost::Cost, layer::Layer, matrix::{Matrix, cpu::Cpu}};
 
     #[test]
     fn test_network_forward_output_shape() {
         let mut network = Network::new(
-            vec![Layer::<f64>::relu(3, 4), Layer::<f64>::relu(4, 2)],
+            vec![Layer::<f64, Cpu>::relu(3, 4), Layer::<f64, Cpu>::relu(4, 2)],
             Cost::mse(),
             0.01,
         );
@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_network_step_produces_finite_non_negative_loss() {
         let mut network = Network::new(
-            vec![Layer::<f64>::relu(2, 3), Layer::<f64>::relu(3, 1)],
+            vec![Layer::<f64, Cpu>::relu(2, 3), Layer::<f64, Cpu>::relu(3, 1)],
             Cost::mse(),
             0.01,
         );
@@ -95,9 +95,9 @@ mod tests {
         for _ in 0..6 {
             let mut network = Network::new(
                 vec![
-                    Layer::<f64>::relu(1, 16),
-                    Layer::<f64>::relu(16, 8),
-                    Layer::<f64>::linear(8, 1),
+                    Layer::<f64, Cpu>::relu(1, 16),
+                    Layer::<f64, Cpu>::relu(16, 8),
+                    Layer::<f64, Cpu>::linear(8, 1),
                 ],
                 Cost::mse(),
                 0.01,
@@ -147,9 +147,9 @@ mod tests {
         for _ in 0..1 {
             let mut network = Network::new(
                 vec![
-                    Layer::<f64>::relu(2, 16),
-                    Layer::<f64>::relu(16, 8),
-                    Layer::<f64>::linear(8, 1),
+                    Layer::<f64, Cpu>::relu(2, 16),
+                    Layer::<f64, Cpu>::relu(16, 8),
+                    Layer::<f64, Cpu>::linear(8, 1),
                 ],
                 Cost::mse(),
                 0.01,
@@ -225,9 +225,9 @@ mod tests {
         for _ in 0..1 {
             let mut network = Network::new(
                 vec![
-                    Layer::<f64>::relu(2, 16),
-                    Layer::<f64>::relu(16, 8),
-                    Layer::<f64>::linear(8, 2),
+                    Layer::<f64, Cpu>::relu(2, 16),
+                    Layer::<f64, Cpu>::relu(16, 8),
+                    Layer::<f64, Cpu>::linear(8, 2),
                 ],
                 Cost::cross_entropy(),
                 0.01,

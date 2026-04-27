@@ -47,19 +47,19 @@ where
     }
 }
 
-impl<F> Cost<F, Cpu>
+impl<F, D: Device<F>> Cost<F, D>
 where
     F: Float,
 {
-    pub fn forward(&self) -> fn(&Matrix<F, Cpu>, &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
+    pub fn forward(&self) -> fn(&Matrix<F, D>, &Matrix<F, D>) -> Matrix<F, D> {
         self.forward
     }
 
-    pub fn backward(&self) -> fn(Matrix<F, Cpu>, &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
+    pub fn backward(&self) -> fn(Matrix<F, D>, &Matrix<F, D>) -> Matrix<F, D> {
         self.backward
     }
 
-    pub fn loss(&self) -> fn(&Matrix<F, Cpu>, &Matrix<F, Cpu>) -> F {
+    pub fn loss(&self) -> fn(&Matrix<F, D>, &Matrix<F, D>) -> F {
         self.loss
     }
 }
