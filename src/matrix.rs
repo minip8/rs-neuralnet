@@ -52,7 +52,7 @@ impl<F: Float, D: Device<F>> Matrix<F, D> {
         Self {
             rows,
             cols,
-            matrix: D::Matrix::new(vec![F::zero(); rows * cols], rows, cols),
+            matrix: D::Matrix::zeros(rows, cols),
         }
     }
 

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Display};
+use std::fmt::Display;
 
 use num_traits::Float;
 
@@ -9,17 +9,6 @@ use crate::{
         row_iter::{RowIter, RowIterMut},
     },
 };
-
-use rand::{
-    SeedableRng,
-    rngs::{StdRng, SysRng},
-};
-
-use rand_distr::{Distribution, Normal, StandardNormal};
-
-thread_local! {
-    static RNG: RefCell<StdRng> = RefCell::new(StdRng::try_from_rng(&mut SysRng).unwrap());
-}
 
 #[derive(Clone)]
 pub struct Cpu;
@@ -91,7 +80,7 @@ impl<T> MatrixOps<T> for CpuMatrix<T> {
     where
         F: Fn(&T) -> T,
     {
-        self.data.iter().map(f);
+        let _ = self.data.iter().map(f);
         self
     }
 
