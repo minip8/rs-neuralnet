@@ -35,89 +35,49 @@ impl Device for Cpu {
 }
 
 impl<T> MatrixOps<T> for CpuMatrix<T> {
+    fn new(data: Vec<T>, rows: usize, cols: usize) -> Self {
+        Self { data, rows, cols }
+    }
+
+    fn fill(v: T, rows: usize, cols: usize) -> Self
+    where
+        T: Copy,
+    {
+        Self {
+            data: vec![v; rows * cols],
+            rows,
+            cols,
+        }
+    }
+
+    fn zeros(rows: usize, cols: usize) -> Self
+    where
+        T: Float,
+    {
+        Self::fill(T::zero(), rows, cols)
+    }
+
     fn numel(&self) -> usize {
         self.rows * self.cols
     }
-}
 
-// Constructors
-impl<F: Float> CpuMatrix<F> {
-    pub fn zeros(rows: usize, cols: usize) -> Self {
-        Self {
-            rows,
-            cols,
-            data: vec![F::zero(); rows * cols],
-        }
-    }
-
-    pub fn normal(rows: usize, cols: usize, mean: F, std_dev: F) -> Self
+    fn get(&self, r: usize, c: usize) -> T
     where
-        StandardNormal: Distribution<F>,
+        T: Copy,
     {
-        let norm = Normal::new(mean, std_dev).unwrap();
-        CpuMatrix {
-            rows,
-            cols,
-            data: RNG.with(|rng| {
-                norm.sample_iter(&mut *rng.borrow_mut())
-                    .take(rows * cols)
-                    .collect()
-            }),
-        }
-    }
-}
-
-impl<T> CpuMatrix<T> {
-    pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Self {
-        Self { rows, cols, data }
-    }
-}
-
-impl<T: Copy + Default> CpuMatrix<T> {
-    pub fn defaults(rows: usize, cols: usize) -> Self {
-        Self {
-            rows,
-            cols,
-            data: vec![T::default(); rows * cols],
-        }
+        self.data[r * self.cols + c]
     }
 
-    pub fn from_vec2d(data2d: Vec<Vec<T>>) -> Self {
-        let rows = data2d.len();
-        let cols = data2d[0].len();
-        let mut res = Self::defaults(rows, cols);
-        for i in 0..rows {
-            for j in 0..cols {
-                res.set_(i, j, data2d[i][j]);
-            }
-        }
-        res
-    }
-}
-
-// QOL
-impl<T: Copy> CpuMatrix<T> {
-    pub fn rowcol_to_idx(&self, r: usize, c: usize) -> usize {
-        let idx = r * self.cols + c;
-        // self.assert_idx_ok(idx);
-        idx
-    }
-
-    pub fn get(&self, r: usize, c: usize) -> T {
-        self.data[self.rowcol_to_idx(r, c)]
-    }
-
-    pub fn item(&self) -> T {
-        self.data[0]
-    }
-
-    pub fn set_(&mut self, r: usize, c: usize, v: T) -> &mut Self {
+    fn set_(&mut self, r: usize, c: usize, v: T) -> &mut Self {
         let idx = self.rowcol_to_idx(r, c);
         self.data[idx] = v;
         self
     }
 
-    pub fn set_row_(&mut self, r: usize, values: &[T]) -> &mut Self {
+    fn set_row_(&mut self, r: usize, values: &[T]) -> &mut Self
+    where
+        T: Copy,
+    {
         let start = self.rowcol_to_idx(r, 0);
         let end = self.rowcol_to_idx(r + 1, 0);
         for i in start..end {
@@ -126,32 +86,19 @@ impl<T: Copy> CpuMatrix<T> {
         self
     }
 
-    pub fn set_row(mut self, r: usize, values: &[T]) -> Self {
-        self.set_row_(r, values);
-        self
-    }
-
-    pub fn apply_<F>(&mut self, f: F) -> &mut Self
+    fn apply_<F>(&mut self, f: F) -> &mut Self
     where
-        F: Fn(T) -> T,
+        F: Fn(&T) -> T,
     {
-        self.data.iter_mut().for_each(|x| *x = f(*x));
+        self.data.iter().map(f);
         self
     }
 
-    pub fn apply<F>(mut self, f: F) -> Self
+    fn transpose(&self) -> Self
     where
-        F: Fn(T) -> T,
+        T: Copy,
     {
-        self.apply_(f);
-        self
-    }
-}
-
-// Unary operations
-impl<F: Float> CpuMatrix<F> {
-    pub fn transpose(&self) -> Self {
-        let mut res = Self::zeros(self.cols, self.rows);
+        let mut res = Self::fill(self.get(0, 0), self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 res.set_(j, i, self.get(i, j));
@@ -159,12 +106,11 @@ impl<F: Float> CpuMatrix<F> {
         }
         res
     }
-}
 
-// Binary operations
-
-impl<F: Float> CpuMatrix<F> {
-    pub fn add_(&mut self, other: &Self) -> &mut Self {
+    fn add_(&mut self, other: &Self) -> &mut Self
+    where
+        T: Float,
+    {
         self.data
             .iter_mut()
             .zip(other.data.iter())
@@ -172,11 +118,110 @@ impl<F: Float> CpuMatrix<F> {
         self
     }
 
-    pub fn add(mut self, other: &Self) -> Self {
-        self.add_(other);
+    fn sub_(&mut self, other: &Self) -> &mut Self
+    where
+        T: Float,
+    {
+        self.data
+            .iter_mut()
+            .zip(other.data.iter())
+            .for_each(|(a, b)| *a = *a - *b);
         self
     }
 
+    fn hadamard_(&mut self, other: &Self) -> &mut Self
+    where
+        T: Float,
+    {
+        self.data
+            .iter_mut()
+            .zip(other.data.iter())
+            .for_each(|(a, b)| *a = *a * *b);
+        self
+    }
+
+    fn mul_(&mut self, scale: T) -> &mut Self
+    where
+        T: Float,
+    {
+        self.data.iter_mut().for_each(|a| *a = *a * scale);
+        self
+    }
+
+    fn dot(&self, other: &Self) -> T
+    where
+        T: Float,
+    {
+        self.data
+            .iter()
+            .zip(other.data.iter())
+            .fold(T::zero(), |acc, (&a, &b)| acc + a * b)
+    }
+
+    fn mat_mul(&self, other: &Self) -> Self
+    where
+        T: Float,
+    {
+        let mut data = vec![T::zero(); self.rows * other.cols];
+
+        for i in 0..self.rows {
+            for k in 0..other.rows {
+                for j in 0..other.cols {
+                    data[i * other.cols + j] =
+                        data[i * other.cols + j] + self.get(i, k) * other.get(k, j);
+                }
+            }
+        }
+        Self::new(data, self.rows, other.cols)
+    }
+
+    fn col_sum_(&mut self) -> &mut Self
+    where
+        T: Float,
+    {
+        for i in 1..self.rows {
+            for j in 0..self.cols {
+                self.set_(0, j, self.get(0, j) + self.get(i, j));
+            }
+        }
+        self.rows = 1;
+        self.data.truncate(self.cols);
+        self
+    }
+
+    fn max(&self) -> (usize, T)
+    where
+        T: Float,
+    {
+        self.iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+            .map(|(i, a)| (i, *a))
+            .unwrap()
+    }
+}
+
+impl<T> CpuMatrix<T> {
+    pub fn data(&self) -> &[T] {
+        &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut [T] {
+        &mut self.data
+    }
+}
+
+// QOL
+impl<T> CpuMatrix<T> {
+    pub fn rowcol_to_idx(&self, r: usize, c: usize) -> usize {
+        let idx = r * self.cols + c;
+        idx
+    }
+}
+
+// Binary operations
+
+impl<F: Float> CpuMatrix<F> {
     pub fn add_row_to_all_rows(&self, other: &Self) -> Self {
         let mut res = Self::zeros(self.rows, self.cols);
         for i in 0..self.rows {
@@ -197,63 +242,6 @@ impl<F: Float> CpuMatrix<F> {
         res
     }
 
-    pub fn sub_(&mut self, other: &Self) -> &mut Self {
-        self.data
-            .iter_mut()
-            .zip(other.data.iter())
-            .for_each(|(a, b)| *a = *a - *b);
-        self
-    }
-
-    pub fn sub(mut self, other: &Self) -> Self {
-        self.sub_(other);
-        self
-    }
-
-    pub fn hadamard_(&mut self, other: &Self) -> &mut Self {
-        self.data
-            .iter_mut()
-            .zip(other.data.iter())
-            .for_each(|(a, b)| *a = *a * *b);
-        self
-    }
-
-    pub fn hadamard(mut self, other: &Self) -> Self {
-        self.hadamard_(other);
-        self
-    }
-
-    pub fn mul_(&mut self, scale: F) -> &mut Self {
-        self.data.iter_mut().for_each(|a| *a = *a * scale);
-        self
-    }
-
-    pub fn mul(mut self, scale: F) -> Self {
-        self.mul_(scale);
-        self
-    }
-
-    pub fn mul_row_(&mut self, row: usize, scale: F) -> &mut Self {
-        let start = row * self.cols;
-        let end = start + self.cols;
-        for i in start..end {
-            self.data[i] = self.data[i] * scale;
-        }
-        self
-    }
-
-    pub fn mul_row(mut self, row: usize, scale: F) -> Self {
-        self.mul_row_(row, scale);
-        self
-    }
-
-    pub fn dot(&self, other: &Self) -> F {
-        self.data
-            .iter()
-            .zip(other.data.iter())
-            .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
-    }
-
     /// Takes two same dimensional matrices and dot products their rows together
     /// Returns a row vector of the dot products
     pub fn dot_rows(&self, other: &Self) -> Self {
@@ -268,7 +256,7 @@ impl<F: Float> CpuMatrix<F> {
                     .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
             }
         }
-        Self::from_vec1d(1, self.rows, data)
+        Self::new(data, 1, self.rows)
     }
 
     /// Takes a N x M CpuMatrix and a 1 x M CpuMatrix and dot products the row vector
@@ -286,28 +274,7 @@ impl<F: Float> CpuMatrix<F> {
                     .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
             }
         }
-        Self::from_vec1d(1, self.rows, data)
-    }
-
-    pub fn mat_mul_(&mut self, other: &Self) -> &mut Self {
-        let mut data = vec![F::zero(); self.rows * other.cols];
-
-        for i in 0..self.rows {
-            for k in 0..other.rows {
-                for j in 0..other.cols {
-                    data[i * other.cols + j] =
-                        data[i * other.cols + j] + self.get(i, k) * other.get(k, j);
-                }
-            }
-        }
-        self.cols = other.cols;
-        self.data = data;
-        self
-    }
-
-    pub fn mat_mul(mut self, other: &Self) -> Self {
-        self.mat_mul_(other);
-        self
+        Self::new(data, 1, self.rows)
     }
 
     /// self is a 1 x M CpuMatrix
@@ -330,31 +297,6 @@ impl<F: Float> CpuMatrix<F> {
     }
 }
 
-impl<F: Float> CpuMatrix<F> {
-    pub fn col_sum_(&mut self) -> &mut Self {
-        for i in 1..self.rows {
-            for j in 0..self.cols {
-                self.set_(0, j, self.get(0, j) + self.get(i, j));
-            }
-        }
-        self.rows = 1;
-        self.data.truncate(self.cols);
-        self
-    }
-
-    pub fn col_sum(mut self) -> Self {
-        self.col_sum_();
-        self
-    }
-
-    pub fn max(&self) -> (usize, F) {
-        self.iter()
-            .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(i, a)| (i, *a))
-            .unwrap()
-    }
-}
 
 impl<T> CpuMatrix<T> {
     pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {

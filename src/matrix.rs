@@ -9,7 +9,10 @@ use rand_distr::{Distribution, Normal, StandardNormal};
 
 use row_iter::RowIter;
 
-use crate::matrix::row_iter::RowIterMut;
+use crate::{
+    device::Device,
+    matrix::{cpu::Cpu, ops::MatrixOps, row_iter::RowIterMut},
+};
 
 pub mod cpu;
 pub mod cuda;
@@ -21,14 +24,14 @@ thread_local! {
 }
 
 #[derive(Clone)]
-pub struct Matrix<T> {
+pub struct Matrix<T, D: Device> {
     rows: usize,
     cols: usize,
-    data: Vec<T>,
+    matrix: D::Matrix<T>,
 }
 
 // Getters
-impl<T> Matrix<T> {
+impl<T, D: Device> Matrix<T, D> {
     pub fn rows(&self) -> usize {
         self.rows
     }
@@ -36,54 +39,64 @@ impl<T> Matrix<T> {
     pub fn cols(&self) -> usize {
         self.cols
     }
+}
 
-    pub fn data(&self) -> &Vec<T> {
-        &self.data
+impl<T> Matrix<T, Cpu> {
+    pub fn data(&self) -> &[T] {
+        self.matrix.data()
     }
 }
 
 // Constructors
-impl<T: Float> Matrix<T> {
+impl<F: Float, D: Device> Matrix<F, D> {
     pub fn zeros(rows: usize, cols: usize) -> Self {
         Self {
             rows,
             cols,
-            data: vec![T::zero(); rows * cols],
+            matrix: D::Matrix::new(vec![F::zero(); rows * cols], rows, cols),
         }
     }
 
-    pub fn normal<F>(rows: usize, cols: usize, mean: F, std_dev: F) -> Matrix<F>
+    pub fn normal(rows: usize, cols: usize, mean: F, std_dev: F) -> Self
     where
-        F: num_traits::Float,
         StandardNormal: Distribution<F>,
     {
         let norm = Normal::new(mean, std_dev).unwrap();
         Matrix {
             rows,
             cols,
-            data: RNG.with(|rng| {
-                norm.sample_iter(&mut *rng.borrow_mut())
-                    .take(rows * cols)
-                    .collect()
-            }),
+            matrix: D::Matrix::new(
+                RNG.with(|rng| {
+                    norm.sample_iter(&mut *rng.borrow_mut())
+                        .take(rows * cols)
+                        .collect()
+                }),
+                rows,
+                cols,
+            ),
         }
     }
 }
 
-impl<T> Matrix<T> {
+impl<T, D: Device> Matrix<T, D> {
+    // TODO: swap data with rows,cols
     pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Self {
         Self::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
 
-        Self { rows, cols, data }
+        Self {
+            rows,
+            cols,
+            matrix: D::Matrix::new(data, rows, cols),
+        }
     }
 }
 
-impl<T: Copy + Default> Matrix<T> {
+impl<T: Copy + Default, D: Device> Matrix<T, D> {
     pub fn defaults(rows: usize, cols: usize) -> Self {
         Self {
             rows,
             cols,
-            data: vec![T::default(); rows * cols],
+            matrix: D::Matrix::new(vec![T::default(); rows * cols], rows, cols),
         }
     }
 
@@ -103,7 +116,7 @@ impl<T: Copy + Default> Matrix<T> {
 }
 
 // Assertions
-impl<T> Matrix<T> {
+impl<T, D: Device> Matrix<T, D> {
     fn assert_rowcol_dimensions_match_data1d(rows: usize, cols: usize, data: &Vec<T>) {
         debug_assert_eq!(rows * cols, data.len());
     }
@@ -122,7 +135,7 @@ impl<T> Matrix<T> {
     }
 
     fn assert_idx_ok(&self, idx: usize) {
-        debug_assert!(idx < self.data.len());
+        debug_assert!(idx < self.rows * self.cols);
     }
 
     fn assert_row_vector(m: &Self) {
@@ -149,34 +162,28 @@ impl<T> Matrix<T> {
 }
 
 // QOL
-impl<T: Copy> Matrix<T> {
-    pub fn rowcol_to_idx(&self, r: usize, c: usize) -> usize {
-        let idx = r * self.cols + c;
-        // self.assert_idx_ok(idx);
-        idx
-    }
-
+impl<T: Copy, D: Device> Matrix<T, D> {
     pub fn get(&self, r: usize, c: usize) -> T {
-        self.data[self.rowcol_to_idx(r, c)]
+        self.matrix.get(r, c)
     }
 
     pub fn item(&self) -> T {
         self.assert_singleton();
-        self.data[0]
+        self.matrix.get(0, 0)
     }
 
     pub fn set_(&mut self, r: usize, c: usize, v: T) -> &mut Self {
-        let idx = self.rowcol_to_idx(r, c);
-        self.data[idx] = v;
+        self.matrix.set_(r, c, v);
+        self
+    }
+
+    pub fn set(mut self, r: usize, c: usize, v: T) -> Self {
+        self.set_(r, c, v);
         self
     }
 
     pub fn set_row_(&mut self, r: usize, values: &[T]) -> &mut Self {
-        let start = self.rowcol_to_idx(r, 0);
-        let end = self.rowcol_to_idx(r + 1, 0);
-        for i in start..end {
-            self.data[i] = values[i - start];
-        }
+        self.matrix.set_row_(r, values);
         self
     }
 
@@ -187,23 +194,24 @@ impl<T: Copy> Matrix<T> {
 
     pub fn apply_<F>(&mut self, f: F) -> &mut Self
     where
-        F: Fn(T) -> T,
+        F: Fn(&T) -> T,
     {
-        self.data.iter_mut().for_each(|x| *x = f(*x));
+        self.matrix.apply_(f);
         self
     }
 
+    // TODO: make Fn(&T)
     pub fn apply<F>(mut self, f: F) -> Self
     where
         F: Fn(T) -> T,
     {
-        self.apply_(f);
+        self.apply_(|x| f(*x));
         self
     }
 }
 
 // Unary operations
-impl<F: Float> Matrix<F> {
+impl<F: Float, D: Device> Matrix<F, D> {
     pub fn transpose(&self) -> Self {
         let mut res = Self::zeros(self.cols, self.rows);
         for i in 0..self.rows {
@@ -217,14 +225,11 @@ impl<F: Float> Matrix<F> {
 
 // Binary operations
 
-impl<F: Float> Matrix<F> {
+impl<F: Float, D: Device> Matrix<F, D> {
     pub fn add_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
-        self.data
-            .iter_mut()
-            .zip(other.data.iter())
-            .for_each(|(a, b)| *a = *a + *b);
+        self.matrix.add_(&other.matrix);
         self
     }
 
@@ -235,6 +240,7 @@ impl<F: Float> Matrix<F> {
         self
     }
 
+    // TODO: make a complementary &mut self method similar to the other ones
     pub fn add_row_to_all_rows(&self, other: &Self) -> Self {
         Self::assert_row_add_compatible(&self, other);
         let mut res = Self::zeros(self.rows, self.cols);
@@ -260,10 +266,7 @@ impl<F: Float> Matrix<F> {
     pub fn sub_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
-        self.data
-            .iter_mut()
-            .zip(other.data.iter())
-            .for_each(|(a, b)| *a = *a - *b);
+        self.matrix.sub_(&other.matrix);
         self
     }
 
@@ -277,10 +280,7 @@ impl<F: Float> Matrix<F> {
     pub fn hadamard_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
-        self.data
-            .iter_mut()
-            .zip(other.data.iter())
-            .for_each(|(a, b)| *a = *a * *b);
+        self.matrix.hadamard_(&other.matrix);
         self
     }
 
@@ -292,7 +292,7 @@ impl<F: Float> Matrix<F> {
     }
 
     pub fn mul_(&mut self, scale: F) -> &mut Self {
-        self.data.iter_mut().for_each(|a| *a = *a * scale);
+        self.matrix.mul_(scale);
         self
     }
 
@@ -301,89 +301,87 @@ impl<F: Float> Matrix<F> {
         self
     }
 
-    pub fn mul_row_(&mut self, row: usize, scale: F) -> &mut Self {
-        let start = row * self.cols;
-        let end = start + self.cols;
-        for i in start..end {
-            self.data[i] = self.data[i] * scale;
-        }
-        self
-    }
+    // pub fn mul_row_(&mut self, row: usize, scale: F) -> &mut Self {
+    //     let start = row * self.cols;
+    //     let end = start + self.cols;
+    //     for i in start..end {
+    //         self.data[i] = self.data[i] * scale;
+    //     }
+    //     self
+    // }
 
-    pub fn mul_row(mut self, row: usize, scale: F) -> Self {
-        self.mul_row_(row, scale);
-        self
-    }
+    // pub fn mul_row(mut self, row: usize, scale: F) -> Self {
+    //     self.mul_row_(row, scale);
+    //     self
+    // }
 
     pub fn dot(&self, other: &Self) -> F {
         self.assert_same_dimensions(other);
-        self.data
-            .iter()
-            .zip(other.data.iter())
-            .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
+
+        self.matrix.dot(&other.matrix)
     }
 
     /// Takes two same dimensional matrices and dot products their rows together
     /// Returns a row vector of the dot products
-    pub fn dot_rows(&self, other: &Self) -> Self {
-        self.assert_same_dimensions(other);
+    // pub fn dot_rows(&self, other: &Self) -> Self {
+    //     self.assert_same_dimensions(other);
 
-        let mut data = vec![F::zero(); self.rows];
-        for i in 0..self.rows {
-            data[i] = {
-                let start = i * self.cols;
-                let end = start + self.cols;
-                self.data[start..end]
-                    .iter()
-                    .zip(other.data[start..end].iter())
-                    .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
-            }
-        }
-        Self::from_vec1d(1, self.rows, data)
-    }
+    //     let mut data = vec![F::zero(); self.rows];
+    //     for i in 0..self.rows {
+    //         data[i] = {
+    //             let start = i * self.cols;
+    //             let end = start + self.cols;
+    //             self.data[start..end]
+    //                 .iter()
+    //                 .zip(other.data[start..end].iter())
+    //                 .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
+    //         }
+    //     }
+    //     Self::from_vec1d(1, self.rows, data)
+    // }
 
     /// Takes a N x M matrix and a 1 x M matrix and dot products the row vector
     /// with every row of the N x M matrix
     /// Returns a row vector of the dot products
-    pub fn dot_rows_with_row(&self, other: &Self) -> Self {
-        self.assert_same_cols(other);
+    // pub fn dot_rows_with_row(&self, other: &Self) -> Self {
+    //     self.assert_same_cols(other);
 
-        let mut data = vec![F::zero(); self.rows];
-        for i in 0..self.rows {
-            data[i] = {
-                let start = i * self.cols;
-                let end = start + self.cols;
-                self.data[start..end]
-                    .iter()
-                    .zip(other.data.iter())
-                    .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
-            }
-        }
-        Self::from_vec1d(1, self.rows, data)
-    }
+    //     let mut data = vec![F::zero(); self.rows];
+    //     for i in 0..self.rows {
+    //         data[i] = {
+    //             let start = i * self.cols;
+    //             let end = start + self.cols;
+    //             self.data[start..end]
+    //                 .iter()
+    //                 .zip(other.data.iter())
+    //                 .fold(F::zero(), |acc, (&a, &b)| acc + a * b)
+    //         }
+    //     }
+    //     Self::from_vec1d(1, self.rows, data)
+    // }
 
-    pub fn mat_mul_(&mut self, other: &Self) -> &mut Self {
+    // pub fn mat_mul_(&mut self, other: &Self) -> &mut Self {
+    //     self.assert_matmul_compatible(other);
+
+    //     let mut data = vec![F::zero(); self.rows * other.cols];
+
+    //     for i in 0..self.rows {
+    //         for k in 0..other.rows {
+    //             for j in 0..other.cols {
+    //                 data[i * other.cols + j] =
+    //                     data[i * other.cols + j] + self.get(i, k) * other.get(k, j);
+    //             }
+    //         }
+    //     }
+    //     self.cols = other.cols;
+    //     self.data = data;
+    //     self
+    // }
+
+    pub fn mat_mul(self, other: &Self) -> Self {
         self.assert_matmul_compatible(other);
 
-        let mut data = vec![F::zero(); self.rows * other.cols];
-
-        for i in 0..self.rows {
-            for k in 0..other.rows {
-                for j in 0..other.cols {
-                    data[i * other.cols + j] =
-                        data[i * other.cols + j] + self.get(i, k) * other.get(k, j);
-                }
-            }
-        }
-        self.cols = other.cols;
-        self.data = data;
-        self
-    }
-
-    pub fn mat_mul(mut self, other: &Self) -> Self {
-        self.assert_matmul_compatible(other);
-
-        self.mat_mul_(other);
+        self.matrix.mat_mul(&other.matrix);
         self
     }
 
@@ -406,17 +404,9 @@ impl<F: Float> Matrix<F> {
         }
         res
     }
-}
 
-impl<F: Float> Matrix<F> {
     pub fn col_sum_(&mut self) -> &mut Self {
-        for i in 1..self.rows {
-            for j in 0..self.cols {
-                self.set_(0, j, self.get(0, j) + self.get(i, j));
-            }
-        }
-        self.rows = 1;
-        self.data.truncate(self.cols);
+        self.matrix.col_sum_();
         self
     }
 
@@ -426,38 +416,34 @@ impl<F: Float> Matrix<F> {
     }
 
     pub fn max(&self) -> (usize, F) {
-        self.iter()
-            .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(i, a)| (i, *a))
-            .unwrap()
+        self.matrix.max()
     }
 }
 
-impl<T> Matrix<T> {
+impl<T> Matrix<T, Cpu> {
     pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {
-        self.data.iter()
+        self.matrix.iter()
     }
 
     pub fn row_iter(&self) -> RowIter<'_, T> {
-        RowIter::new(&self.data, self.rows, self.cols)
+        self.matrix.row_iter()
     }
 
     pub fn row_iter_mut(&mut self) -> RowIterMut<'_, T> {
-        RowIterMut::new(self.data.as_mut(), self.rows, self.cols)
+        self.matrix.row_iter_mut()
     }
 }
 
-impl<T> IntoIterator for Matrix<T> {
+impl<T> IntoIterator for Matrix<T, Cpu> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.data.into_iter()
+        self.matrix.into_iter()
     }
 }
 
-impl<F: Float + Display> Display for Matrix<F> {
+impl<F: Float + Display> Display for Matrix<F, Cpu> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\ndims: ({}, {})\n", self.rows, self.cols).unwrap();
         for r in self.row_iter() {
@@ -470,13 +456,14 @@ impl<F: Float + Display> Display for Matrix<F> {
         Ok(())
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_matrix_f32() {
-        let m: Matrix<f32> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m: Matrix<f32, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         assert_eq!(m.rows(), 2);
         assert_eq!(m.cols(), 2);
         assert_eq!(m.data(), &vec![1.0, 2.0, 3.0, 4.0]);
@@ -484,7 +471,7 @@ mod tests {
 
     #[test]
     fn test_matrix_f64() {
-        let m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         assert_eq!(m.rows(), 2);
         assert_eq!(m.cols(), 2);
         assert_eq!(m.data(), &vec![1.0, 2.0, 3.0, 4.0]);
@@ -492,38 +479,39 @@ mod tests {
 
     #[test]
     fn test_matrix_add() {
-        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
-        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
+        let m1: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m2: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
         let result = m1.add(&m2);
         assert_eq!(result.data(), &vec![6.0, 8.0, 10.0, 12.0]);
     }
 
     #[test]
     fn test_matrix_sub() {
-        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
-        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m1: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
+        let m2: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         let result = m1.sub(&m2);
         assert_eq!(result.data(), &vec![4.0, 4.0, 4.0, 4.0]);
     }
 
     #[test]
     fn test_matrix_hadamard() {
-        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![2.0, 3.0], vec![4.0, 5.0]]);
-        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![2.0, 2.0], vec![3.0, 3.0]]);
+        let m1: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![2.0, 3.0], vec![4.0, 5.0]]);
+        let m2: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![2.0, 2.0], vec![3.0, 3.0]]);
         let result = m1.hadamard(&m2);
         assert_eq!(result.data(), &vec![4.0, 6.0, 12.0, 15.0]);
     }
 
     #[test]
     fn test_matrix_mul_scalar() {
-        let m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         let result = m.mul(2.0);
         assert_eq!(result.data(), &vec![2.0, 4.0, 6.0, 8.0]);
     }
 
     #[test]
     fn test_matrix_transpose() {
-        let m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]]);
+        let m: Matrix<f64, Cpu> =
+            Matrix::from_vec2d(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]]);
         let result = m.transpose();
         assert_eq!(result.rows(), 3);
         assert_eq!(result.cols(), 2);
@@ -532,8 +520,8 @@ mod tests {
 
     #[test]
     fn test_matrix_mat_mul() {
-        let m1: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
-        let m2: Matrix<f64> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
+        let m1: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let m2: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
         let result = m1.mat_mul(&m2);
         assert_eq!(result.rows(), 2);
         assert_eq!(result.cols(), 2);
@@ -544,7 +532,7 @@ mod tests {
 
     #[test]
     fn test_matrix_zeros() {
-        let m: Matrix<f32> = Matrix::zeros(2, 3);
+        let m: Matrix<f32, Cpu> = Matrix::zeros(2, 3);
         assert_eq!(m.rows(), 2);
         assert_eq!(m.cols(), 3);
         assert_eq!(m.data(), &vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
@@ -552,7 +540,7 @@ mod tests {
 
     #[test]
     fn test_matrix_from_vec1d() {
-        let m: Matrix<f64> = Matrix::from_vec1d(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
+        let m: Matrix<f64, Cpu> = Matrix::from_vec1d(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
         assert_eq!(m.rows(), 2);
         assert_eq!(m.cols(), 2);
         assert_eq!(m.data(), &vec![1.0, 2.0, 3.0, 4.0]);
@@ -560,7 +548,7 @@ mod tests {
 
     #[test]
     fn test_matrix_apply() {
-        let mut m: Matrix<f64> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let mut m: Matrix<f64, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         // Double each element
         m.apply_(|x| 2.0 * x);
         assert_eq!(m.data(), &vec![2.0, 4.0, 6.0, 8.0]);
@@ -568,7 +556,7 @@ mod tests {
 
     #[test]
     fn test_matrix_apply_add_constant() {
-        let mut m: Matrix<f32> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+        let mut m: Matrix<f32, Cpu> = Matrix::from_vec2d(vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
         // Add 10 to each element
         m.apply_(|x| x + 10.0);
         assert_eq!(m.data(), &vec![11.0, 12.0, 13.0, 14.0]);
@@ -576,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_matrix_normal_dimensions() {
-        let m = Matrix::<f64>::normal(3, 4, 0.0, 1.0);
+        let m = Matrix::<f64, Cpu>::normal(3, 4, 0.0, 1.0);
         assert_eq!(m.rows(), 3);
         assert_eq!(m.cols(), 4);
         assert_eq!(m.data().len(), 12);
@@ -584,7 +572,7 @@ mod tests {
 
     #[test]
     fn test_matrix_normal_values_vary() {
-        let m = Matrix::<f32>::normal(10, 10, 0.0, 1.0);
+        let m = Matrix::<f32, Cpu>::normal(10, 10, 0.0, 1.0);
         // Check that not all values are the same (extremely unlikely with random normal distribution)
         let first_value = m.data()[0];
         let all_same = m.data().iter().all(|&x| x == first_value);
@@ -596,7 +584,7 @@ mod tests {
         // Create a large matrix to test statistical properties
         let mean = 5.0;
         let std_dev = 2.0;
-        let m = Matrix::<f64>::normal(100, 100, mean, std_dev);
+        let m = Matrix::<f64, Cpu>::normal(100, 100, mean, std_dev);
 
         // Calculate sample mean
         let sample_mean = m.data().iter().sum::<f64>() / m.data().len() as f64;
@@ -629,9 +617,9 @@ mod tests {
     #[test]
     fn test_matrix_mse_basic() {
         // self is 1 x 3 (row vector)
-        let self_vec = Matrix::<f64>::from_vec2d(vec![vec![1.0, 2.0, 3.0]]);
+        let self_vec = Matrix::<f64, Cpu>::from_vec2d(vec![vec![1.0, 2.0, 3.0]]);
         // other is 2 x 3 (two row vectors)
-        let other = Matrix::<f64>::from_vec2d(vec![
+        let other = Matrix::<f64, Cpu>::from_vec2d(vec![
             vec![1.0, 2.0, 3.0], // MSE with self should be 0
             vec![2.0, 3.0, 4.0], // MSE with self should be (1^2 + 1^2 + 1^2) / 3 = 1.0
         ]);
@@ -658,8 +646,8 @@ mod tests {
     #[test]
     fn test_matrix_mse_dimensions() {
         // Test with different dimensions
-        let self_vec = Matrix::<f32>::from_vec2d(vec![vec![0.0, 0.0, 0.0, 0.0]]);
-        let other = Matrix::<f32>::from_vec2d(vec![
+        let self_vec = Matrix::<f32, Cpu>::from_vec2d(vec![vec![0.0, 0.0, 0.0, 0.0]]);
+        let other = Matrix::<f32, Cpu>::from_vec2d(vec![
             vec![1.0, 1.0, 1.0, 1.0],
             vec![2.0, 2.0, 2.0, 2.0],
             vec![3.0, 3.0, 3.0, 3.0],
@@ -681,8 +669,8 @@ mod tests {
 
     #[test]
     fn test_matrix_mse_single_element() {
-        let self_vec = Matrix::<f64>::from_vec2d(vec![vec![5.0]]);
-        let other = Matrix::<f64>::from_vec2d(vec![vec![5.0], vec![7.0]]);
+        let self_vec = Matrix::<f64, Cpu>::from_vec2d(vec![vec![5.0]]);
+        let other = Matrix::<f64, Cpu>::from_vec2d(vec![vec![5.0], vec![7.0]]);
 
         let result = self_vec.mses(&other);
         assert_eq!(result.rows(), 1);

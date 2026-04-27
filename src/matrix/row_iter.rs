@@ -116,7 +116,7 @@ impl<'a, T> ExactSizeIterator for RowIterMut<'a, T> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::matrix::Matrix;
+    use crate::matrix::{Matrix, cpu::Cpu};
 
     #[test]
     fn row_iter_yields_each_row_slice() {
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn row_iter_handles_zero_cols() {
-        let m: Matrix<f32> = Matrix::zeros(3, 0);
+        let m: Matrix<f32, Cpu> = Matrix::zeros(3, 0);
         let rows: Vec<&[f32]> = m.row_iter().collect();
 
         assert_eq!(rows.len(), 3);
