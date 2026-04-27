@@ -39,6 +39,14 @@ impl<T> MatrixOps<T> for CudaMatrix<T> {
         return self.rows * self.cols;
     }
 
+    fn rows(&self) -> usize {
+        self.rows
+    }
+
+    fn cols(&self) -> usize {
+        self.cols
+    }
+
     fn get(&self, r: usize, c: usize) -> T {
         todo!()
     }

@@ -114,6 +114,16 @@ impl<T: Copy + Default, D: Device<T>> Matrix<T, D> {
     }
 }
 
+impl<T, D: Device<T>> Matrix<T, D> {
+    fn from_matrix(matrix: D::Matrix) -> Self {
+        Self {
+            rows: matrix.rows(),
+            cols: matrix.cols(),
+            matrix,
+        }
+    }
+}
+
 // Assertions
 impl<T, D: Device<T>> Matrix<T, D> {
     fn assert_rowcol_dimensions_match_data1d(rows: usize, cols: usize, data: &Vec<T>) {
@@ -380,8 +390,8 @@ impl<F: Float, D: Device<F>> Matrix<F, D> {
     pub fn mat_mul(self, other: &Self) -> Self {
         self.assert_matmul_compatible(other);
 
-        self.matrix.mat_mul(&other.matrix);
-        self
+        // self.matrix.mat_mul(&other.matrix)
+        Self::from_matrix(self.matrix.mat_mul(&other.matrix))
     }
 
     /// self is a 1 x M matrix

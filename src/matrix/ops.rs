@@ -13,6 +13,10 @@ pub trait MatrixOps<T> {
 
     fn numel(&self) -> usize;
 
+    fn rows(&self) -> usize;
+
+    fn cols(&self) -> usize;
+
     fn get(&self, r: usize, c: usize) -> T
     where
         T: Copy;

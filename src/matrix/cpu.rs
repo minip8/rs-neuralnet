@@ -51,6 +51,14 @@ impl<T> MatrixOps<T> for CpuMatrix<T> {
         self.rows * self.cols
     }
 
+    fn rows(&self) -> usize {
+        self.rows
+    }
+
+    fn cols(&self) -> usize {
+        self.cols
+    }
+
     fn get(&self, r: usize, c: usize) -> T
     where
         T: Copy,
@@ -80,7 +88,7 @@ impl<T> MatrixOps<T> for CpuMatrix<T> {
     where
         F: Fn(&T) -> T,
     {
-        let _ = self.data.iter().map(f);
+        self.data.iter_mut().for_each(|x| *x = f(x));
         self
     }
 
