@@ -1,27 +1,25 @@
-use std::fmt::Display;
-
 use num_traits::Float;
 use rand_distr::{Distribution, StandardNormal};
 
-use crate::{activation::Activation, matrix::Matrix};
+use crate::{activation::Activation, device::Device, matrix::{Matrix, cpu::Cpu}};
 
-pub struct Layer<T> {
+pub struct Layer<T, D: Device> {
     /// Note that input and output vectors are row vectors
-    weights: Matrix<T>,
-    bias: Matrix<T>,
-    input: Matrix<T>,
-    pre_activation: Matrix<T>,
+    weights: Matrix<T, D>,
+    bias: Matrix<T, D>,
+    input: Matrix<T, D>,
+    pre_activation: Matrix<T, D>,
     activation: Activation<T, fn(T) -> T, fn(T) -> T>,
 }
 
-impl<F> Layer<F>
+impl<F> Layer<F, Cpu>
 where
     F: Float,
     StandardNormal: Distribution<F>,
 {
     pub fn relu(input_size: usize, output_size: usize) -> Self {
         Self {
-            weights: Matrix::<F>::normal(
+            weights: Matrix::<F, Cpu>::normal(
                 input_size,
                 output_size,
                 F::zero(),
@@ -41,7 +39,7 @@ where
 
     pub fn linear(input_size: usize, output_size: usize) -> Self {
         Self {
-            weights: Matrix::<F>::normal(
+            weights: Matrix::<F, Cpu>::normal(
                 input_size,
                 output_size,
                 F::zero(),
@@ -60,13 +58,13 @@ where
     }
 }
 
-impl<F> Layer<F>
+impl<F, D: Device> Layer<F, D>
 where
-    F: Float + Display,
+    F: Float
 {
     /// a is a batch_size x input_size matrix
     /// a x weights is a batch_size x output_size matrix
-    pub fn forward(&mut self, a: &Matrix<F>) -> Matrix<F> {
+    pub fn forward(&mut self, a: &Matrix<F, D>) -> Matrix<F, D> {
         self.input = a.clone();
         let mut res = a
             .clone()
@@ -89,7 +87,7 @@ where
     ///                                                             = 1     * da/dz * dc/da
     ///
     /// Returns (dc w.r.t previous layer's activation, dc w.r.t this layer's weights)
-    pub fn backward(&mut self, dc_da: Matrix<F>, lr: F) -> Matrix<F> {
+    pub fn backward(&mut self, dc_da: Matrix<F, D>, lr: F) -> Matrix<F, D> {
         let batch_size = self.input.rows();
         let batch_size_inv = F::one() / F::from(batch_size).unwrap();
         let inputs_transposed = self.input.clone().transpose();

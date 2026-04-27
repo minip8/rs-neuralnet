@@ -1,31 +1,39 @@
-use crate::matrix::Matrix;
+use crate::{
+    device::Device,
+    matrix::{Matrix, cpu::Cpu},
+};
 use num_traits::Float;
 pub mod functions;
 
-pub struct Cost<T> {
-    forward: fn(&Matrix<T>, &Matrix<T>) -> Matrix<T>,
-    backward: fn(Matrix<T>, &Matrix<T>) -> Matrix<T>,
-    loss: fn(&Matrix<T>, &Matrix<T>) -> T,
-    _marker: std::marker::PhantomData<T>,
+pub struct Cost<T, D: Device> {
+    forward: fn(&Matrix<T, D>, &Matrix<T, D>) -> Matrix<T, D>,
+    backward: fn(Matrix<T, D>, &Matrix<T, D>) -> Matrix<T, D>,
+    loss: fn(&Matrix<T, D>, &Matrix<T, D>) -> T,
+    // _marker: std::marker::PhantomData<T>,
 }
 
-impl<F> Cost<F>
+impl<F, D: Device> Cost<F, D>
 where
     F: Float,
 {
     pub fn new(
-        forward: fn(&Matrix<F>, &Matrix<F>) -> Matrix<F>,
-        backward: fn(Matrix<F>, &Matrix<F>) -> Matrix<F>,
-        loss: fn(&Matrix<F>, &Matrix<F>) -> F,
+        forward: fn(&Matrix<F, D>, &Matrix<F, D>) -> Matrix<F, D>,
+        backward: fn(Matrix<F, D>, &Matrix<F, D>) -> Matrix<F, D>,
+        loss: fn(&Matrix<F, D>, &Matrix<F, D>) -> F,
     ) -> Self {
         Self {
             forward,
             backward,
             loss,
-            _marker: std::marker::PhantomData,
+            // _marker: std::marker::PhantomData,
         }
     }
+}
 
+impl<F> Cost<F, Cpu>
+where
+    F: Float,
+{
     pub fn mse() -> Self {
         Self::new(functions::mses, functions::mse_backward, functions::mse)
     }
@@ -39,19 +47,19 @@ where
     }
 }
 
-impl<F> Cost<F>
+impl<F> Cost<F, Cpu>
 where
     F: Float,
 {
-    pub fn forward(&self) -> fn(&Matrix<F>, &Matrix<F>) -> Matrix<F> {
+    pub fn forward(&self) -> fn(&Matrix<F, Cpu>, &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
         self.forward
     }
 
-    pub fn backward(&self) -> fn(Matrix<F>, &Matrix<F>) -> Matrix<F> {
+    pub fn backward(&self) -> fn(Matrix<F, Cpu>, &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
         self.backward
     }
 
-    pub fn loss(&self) -> fn(&Matrix<F>, &Matrix<F>) -> F {
+    pub fn loss(&self) -> fn(&Matrix<F, Cpu>, &Matrix<F, Cpu>) -> F {
         self.loss
     }
 }

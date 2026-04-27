@@ -1,8 +1,8 @@
 use num_traits::Float;
 
-use crate::{activation::functions::softmax, matrix::Matrix};
+use crate::{activation::functions::softmax, matrix::{Matrix, cpu::Cpu}};
 
-fn apply_elementwise<T, F>(mut xs: Matrix<T>, y: &Matrix<T>, f: F) -> Matrix<T>
+fn apply_elementwise<T, F>(mut xs: Matrix<T, Cpu>, y: &Matrix<T, Cpu>, f: F) -> Matrix<T, Cpu>
 where
     T: Copy,
     F: Fn(T, T) -> T,
@@ -21,7 +21,7 @@ where
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns the average of the MSEs of each individual batch
-pub fn mse<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> F {
+pub fn mse<F: Float>(xs: &Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> F {
     debug_assert_eq!(y.rows(), 1);
     debug_assert_eq!(xs.cols(), y.cols());
 
@@ -39,7 +39,7 @@ pub fn mse<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> F {
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns a 1 x batch_size row vector of the MSEs of all individual batches
-pub fn mses<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+pub fn mses<F: Float>(xs: &Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
     debug_assert_eq!(y.rows(), 1);
     debug_assert_eq!(xs.cols(), y.cols());
 
@@ -59,7 +59,7 @@ pub fn mses<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns a batch_size x output_size Matrix MSE: (x - y)^2 / output_size
-pub fn mse_forward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+pub fn mse_forward<F: Float>(xs: Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
     let output_size = F::from(xs.cols()).unwrap();
 
     apply_elementwise(xs, y, |xi, yi| (xi - yi).powi(2) / output_size)
@@ -68,7 +68,7 @@ pub fn mse_forward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
 /// xs: batch_size x output_size
 /// y : 1 x output_size
 /// Returns a batch_size x output_size Matrix of d(MSE)/dx: 2 * (x - y) / output_size
-pub fn mse_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+pub fn mse_backward<F: Float>(xs: Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
     let two = F::from(2).unwrap();
     let output_size = F::from(xs.cols()).unwrap();
 
@@ -78,7 +78,7 @@ pub fn mse_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
 /// xs: batch_size x output_size
 /// y: 1 x output_size (1-hot vector)
 /// Returns a 1 x batch_size row vector
-pub fn cross_entropy_loss_forward<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+pub fn cross_entropy_loss_forward<F: Float>(xs: &Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
     debug_assert_eq!(y.rows(), 1);
     debug_assert_eq!(xs.cols(), y.cols());
 
@@ -102,7 +102,7 @@ pub fn cross_entropy_loss_forward<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> Ma
 /// y: 1 x output_size (1-hot vector)
 /// Applies softmax and then computes d(cross entropy loss)/dz for each batch
 /// Returns a batch_size x output_size row vector
-pub fn cross_entropy_loss_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Matrix<F> {
+pub fn cross_entropy_loss_backward<F: Float>(xs: Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> Matrix<F, Cpu> {
     debug_assert_eq!(y.rows(), 1);
     debug_assert_eq!(xs.cols(), y.cols());
 
@@ -114,7 +114,7 @@ pub fn cross_entropy_loss_backward<F: Float>(xs: Matrix<F>, y: &Matrix<F>) -> Ma
 }
 
 /// Returns the mean cross entropy loss across all batches
-pub fn cross_entropy_loss<F: Float>(xs: &Matrix<F>, y: &Matrix<F>) -> F {
+pub fn cross_entropy_loss<F: Float>(xs: &Matrix<F, Cpu>, y: &Matrix<F, Cpu>) -> F {
     cross_entropy_loss_forward(xs, y)
         .iter()
         .fold(F::zero(), |acc, &x| acc + x)
