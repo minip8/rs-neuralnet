@@ -249,16 +249,16 @@ impl<F: Float, D: Device<F>> Matrix<F, D> {
         self
     }
 
-    // TODO: make a complementary &mut self method similar to the other ones
-    pub fn add_row_to_all_rows(&self, other: &Self) -> Self {
+    pub fn add_row_to_all_rows_(&mut self, other: &Self) -> &mut Self {
         Self::assert_row_add_compatible(&self, other);
-        let mut res = Self::zeros(self.rows, self.cols);
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                res.set_(i, j, self.get(i, j) + other.get(0, j));
-            }
-        }
-        res
+
+        self.matrix.add_row_to_all_rows_(&other.matrix);
+        self
+    }
+    // TODO: make a complementary &mut self method similar to the other ones
+    pub fn add_row_to_all_rows(mut self, other: &Self) -> Self {
+        self.add_row_to_all_rows_(other);
+        self
     }
 
     pub fn add_row_to_all_cols(&self, other: &Self) -> Self {
@@ -387,7 +387,7 @@ impl<F: Float, D: Device<F>> Matrix<F, D> {
     //     self
     // }
 
-    pub fn mat_mul(self, other: &Self) -> Self {
+    pub fn mat_mul(&self, other: &Self) -> Self {
         self.assert_matmul_compatible(other);
 
         // self.matrix.mat_mul(&other.matrix)

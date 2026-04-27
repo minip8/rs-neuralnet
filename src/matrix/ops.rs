@@ -59,6 +59,10 @@ pub trait MatrixOps<T> {
     where
         T: Float;
 
+    fn add_row_to_all_rows_(&mut self, other: &Self) -> &mut Self
+    where
+        T: Float;
+
     fn col_sum_(&mut self) -> &mut Self
     where
         T: Float;

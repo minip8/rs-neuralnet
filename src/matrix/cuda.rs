@@ -118,6 +118,13 @@ impl<T> MatrixOps<T> for CudaMatrix<T> {
         todo!()
     }
 
+    fn add_row_to_all_rows_(&mut self, other: &Self) -> &mut Self
+    where
+        T: Float,
+    {
+        todo!()
+    }
+
     fn col_sum_(&mut self) -> &mut Self
     where
         T: Float,

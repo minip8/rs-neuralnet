@@ -173,6 +173,18 @@ impl<T> MatrixOps<T> for CpuMatrix<T> {
         Self::new(data, self.rows, other.cols)
     }
 
+    fn add_row_to_all_rows_(&mut self, other: &Self) -> &mut Self
+    where
+        T: Float,
+    {
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                self.set_(i, j, self.get(i, j) + other.get(0, j));
+            }
+        }
+        self
+    }
+
     fn col_sum_(&mut self) -> &mut Self
     where
         T: Float,
