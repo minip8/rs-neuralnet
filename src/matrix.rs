@@ -23,15 +23,14 @@ thread_local! {
     static RNG: RefCell<StdRng> = RefCell::new(StdRng::try_from_rng(&mut SysRng).unwrap());
 }
 
-#[derive(Clone)]
-pub struct Matrix<T, D: Device> {
+pub struct Matrix<T, D: Device<T>> {
     rows: usize,
     cols: usize,
-    matrix: D::Matrix<T>,
+    matrix: D::Matrix,
 }
 
 // Getters
-impl<T, D: Device> Matrix<T, D> {
+impl<T, D: Device<T>> Matrix<T, D> {
     pub fn rows(&self) -> usize {
         self.rows
     }
@@ -41,14 +40,14 @@ impl<T, D: Device> Matrix<T, D> {
     }
 }
 
-impl<T> Matrix<T, Cpu> {
+impl<T: Clone> Matrix<T, Cpu> {
     pub fn data(&self) -> &[T] {
         self.matrix.data()
     }
 }
 
 // Constructors
-impl<F: Float, D: Device> Matrix<F, D> {
+impl<F: Float, D: Device<F>> Matrix<F, D> {
     pub fn zeros(rows: usize, cols: usize) -> Self {
         Self {
             rows,
@@ -78,7 +77,7 @@ impl<F: Float, D: Device> Matrix<F, D> {
     }
 }
 
-impl<T, D: Device> Matrix<T, D> {
+impl<T, D: Device<T>> Matrix<T, D> {
     // TODO: swap data with rows,cols
     pub fn from_vec1d(rows: usize, cols: usize, data: Vec<T>) -> Self {
         Self::assert_rowcol_dimensions_match_data1d(rows, cols, &data);
@@ -91,7 +90,7 @@ impl<T, D: Device> Matrix<T, D> {
     }
 }
 
-impl<T: Copy + Default, D: Device> Matrix<T, D> {
+impl<T: Copy + Default, D: Device<T>> Matrix<T, D> {
     pub fn defaults(rows: usize, cols: usize) -> Self {
         Self {
             rows,
@@ -116,7 +115,7 @@ impl<T: Copy + Default, D: Device> Matrix<T, D> {
 }
 
 // Assertions
-impl<T, D: Device> Matrix<T, D> {
+impl<T, D: Device<T>> Matrix<T, D> {
     fn assert_rowcol_dimensions_match_data1d(rows: usize, cols: usize, data: &Vec<T>) {
         debug_assert_eq!(rows * cols, data.len());
     }
@@ -162,7 +161,7 @@ impl<T, D: Device> Matrix<T, D> {
 }
 
 // QOL
-impl<T: Copy, D: Device> Matrix<T, D> {
+impl<T: Copy, D: Device<T>> Matrix<T, D> {
     pub fn get(&self, r: usize, c: usize) -> T {
         self.matrix.get(r, c)
     }
@@ -211,7 +210,7 @@ impl<T: Copy, D: Device> Matrix<T, D> {
 }
 
 // Unary operations
-impl<F: Float, D: Device> Matrix<F, D> {
+impl<F: Float, D: Device<F>> Matrix<F, D> {
     pub fn transpose(&self) -> Self {
         let mut res = Self::zeros(self.cols, self.rows);
         for i in 0..self.rows {
@@ -225,7 +224,7 @@ impl<F: Float, D: Device> Matrix<F, D> {
 
 // Binary operations
 
-impl<F: Float, D: Device> Matrix<F, D> {
+impl<F: Float, D: Device<F>> Matrix<F, D> {
     pub fn add_(&mut self, other: &Self) -> &mut Self {
         self.assert_same_dimensions(other);
 
@@ -420,7 +419,7 @@ impl<F: Float, D: Device> Matrix<F, D> {
     }
 }
 
-impl<T> Matrix<T, Cpu> {
+impl<T: Clone> Matrix<T, Cpu> {
     pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {
         self.matrix.iter()
     }
@@ -434,12 +433,22 @@ impl<T> Matrix<T, Cpu> {
     }
 }
 
-impl<T> IntoIterator for Matrix<T, Cpu> {
+impl<T: Clone> IntoIterator for Matrix<T, Cpu> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.matrix.into_iter()
+    }
+}
+
+impl<T, D: Device<T>> Clone for Matrix<T, D> {
+    fn clone(&self) -> Self {
+        Self {
+            rows: self.rows,
+            cols: self.cols,
+            matrix: self.matrix.clone(),
+        }
     }
 }
 

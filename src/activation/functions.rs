@@ -1,6 +1,6 @@
 use num_traits::Float;
 
-use crate::matrix::Matrix;
+use crate::matrix::{Matrix, cpu::Cpu};
 
 pub fn relu<F: Float>(x: F) -> F {
     x.max(F::zero())
@@ -36,7 +36,7 @@ pub fn linear_backward<F: Float>(_: F) -> F {
 }
 
 /// Applies softmax to every row independently
-pub fn softmax<F: Float>(mut m: Matrix<F>) -> Matrix<F> {
+pub fn softmax<F: Float>(mut m: Matrix<F, Cpu>) -> Matrix<F, Cpu> {
     m.row_iter_mut().for_each(|r| {
         let mx = *r.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
         let s = r.iter().fold(F::zero(), |acc, &x| acc + (x - mx).exp());

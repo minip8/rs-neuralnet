@@ -1,9 +1,13 @@
 use num_traits::Float;
 use rand_distr::{Distribution, StandardNormal};
 
-use crate::{activation::Activation, device::Device, matrix::{Matrix, cpu::Cpu}};
+use crate::{
+    activation::Activation,
+    device::Device,
+    matrix::{Matrix, cpu::Cpu},
+};
 
-pub struct Layer<T, D: Device> {
+pub struct Layer<T, D: Device<T>> {
     /// Note that input and output vectors are row vectors
     weights: Matrix<T, D>,
     bias: Matrix<T, D>,
@@ -58,9 +62,9 @@ where
     }
 }
 
-impl<F, D: Device> Layer<F, D>
+impl<F, D: Device<F>> Layer<F, D>
 where
-    F: Float
+    F: Float,
 {
     /// a is a batch_size x input_size matrix
     /// a x weights is a batch_size x output_size matrix

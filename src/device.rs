@@ -1,5 +1,5 @@
 use crate::matrix::ops::MatrixOps;
 
-pub trait Device: Clone + 'static {
-    type Matrix<T>: MatrixOps<T>;
+pub trait Device<T>: Clone + 'static {
+    type Matrix: Clone + MatrixOps<T>;
 }

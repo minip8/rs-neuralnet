@@ -24,14 +24,15 @@ thread_local! {
 #[derive(Clone)]
 pub struct Cpu;
 
+#[derive(Clone)]
 pub struct CpuMatrix<T> {
     rows: usize,
     cols: usize,
     data: Vec<T>,
 }
 
-impl Device for Cpu {
-    type Matrix<T> = CpuMatrix<T>;
+impl<T: Clone> Device<T> for Cpu {
+    type Matrix = CpuMatrix<T>;
 }
 
 impl<T> MatrixOps<T> for CpuMatrix<T> {
@@ -296,7 +297,6 @@ impl<F: Float> CpuMatrix<F> {
         res
     }
 }
-
 
 impl<T> CpuMatrix<T> {
     pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {

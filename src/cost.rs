@@ -5,14 +5,14 @@ use crate::{
 use num_traits::Float;
 pub mod functions;
 
-pub struct Cost<T, D: Device> {
+pub struct Cost<T, D: Device<T>> {
     forward: fn(&Matrix<T, D>, &Matrix<T, D>) -> Matrix<T, D>,
     backward: fn(Matrix<T, D>, &Matrix<T, D>) -> Matrix<T, D>,
     loss: fn(&Matrix<T, D>, &Matrix<T, D>) -> T,
     // _marker: std::marker::PhantomData<T>,
 }
 
-impl<F, D: Device> Cost<F, D>
+impl<F, D: Device<F>> Cost<F, D>
 where
     F: Float,
 {
